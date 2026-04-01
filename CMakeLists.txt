@@ -27,7 +27,8 @@ set_target_properties(${name} PROPERTIES C_STANDARD      23)
 
 target_sources(${name}
     PRIVATE
-        src/pathlib.c
+        src/path.c
+        src/args.c
     PUBLIC
     FILE_SET HEADERS
     BASE_DIRS
@@ -35,7 +36,7 @@ target_sources(${name}
     FILES
         include/stz2/types.h
         include/stz2/test.h
-        include/stz2/pathlib.h
+        include/stz2/args.h
 )
 
 target_include_directories(${name}

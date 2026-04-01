@@ -1,4 +1,4 @@
-#include "stz2/pathlib.h"
+#include "stz2/path.h"
 
 #include "stz2/test.h"
 

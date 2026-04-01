@@ -1,4 +1,4 @@
-#include "stz2/pathlib.h"
+#include "stz2/path.h"
 
 #include <errno.h>    // IWYU pragma: keep
 #include <sys/stat.h> // stat
