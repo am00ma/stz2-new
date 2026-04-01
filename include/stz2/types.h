@@ -208,8 +208,8 @@ SI char* buf_alloc(Buf* b, usize objsize, usize align, isize count, AllocFlags f
 // Actual way of calling, generic on type
 #define make(...)                 makex(__VA_ARGS__, make4, make3, make2)(__VA_ARGS__)
 #define makex(a, b, c, d, e, ...) e
-#define make2(a, t)               (t*)buf_alloc(a, sizeof(t), alignof(t), 1, ARENA_NOZERO)
-#define make3(a, t, n)            (t*)buf_alloc(a, sizeof(t), alignof(t), n, ARENA_NOZERO)
+#define make2(a, t)               (t*)buf_alloc(a, sizeof(t), alignof(t), 1, ALLOC_NOZERO)
+#define make3(a, t, n)            (t*)buf_alloc(a, sizeof(t), alignof(t), n, ALLOC_NOZERO)
 #define make4(a, t, n, f)         (t*)buf_alloc(a, sizeof(t), alignof(t), n, f)
 
 // Lifetime

@@ -8,7 +8,7 @@ int main(int argc, char* argv[])
 
     TEST_CASE("Size") { EXPECT_EQ_LONG(sizeof(Buf), 24L); }
 
-    TEST_CASE("Alloc")
+    TEST_CASE("Alloc: ZERO, NOZERO: char")
     {
         isize cap = 4;
         isize len = 2;
@@ -30,6 +30,48 @@ int main(int argc, char* argv[])
 
         char* c2 = make(&b, char, len, ALLOC_NOZERO);
         RANGE(i, cap) { EXPECT_EQ_INT(c2[i], 'a'); }
+
+        buf_free(&b);
+    }
+
+    TEST_CASE("Alloc: Align")
+    {
+
+        Buf b = buf_new(128);
+
+        // clang-format off
+        #define EXPECT_ALLOC(type, used) make(&b, typeof(type)); EXPECT_EQ_LONG(b.len, used)
+        // clang-format on
+
+        EXPECT_ALLOC(isize, 8L);                   // Some initial alloc
+        EXPECT_ALLOC(char[3], 11L);                // Align is 1 anyway
+        EXPECT_ALLOC(i16, 11L + 1L + sizeof(i16)); // To demonstrate padding
+
+        // C already takes care of padding in case of struct
+        EXPECT_EQ_LONG(sizeof(struct {
+                           isize len;
+                           char  c[3];
+                       }),
+                       16L);
+
+        buf_reset(&b);
+        EXPECT_ALLOC(
+            struct {
+                isize len;
+                char  c[3];
+            },
+            16L); // As expected, == sizeof(struct)
+
+        buf_reset(&b);
+        EXPECT_ALLOC(char[3], 3L);
+        EXPECT_ALLOC(
+            struct {
+                isize len;
+                char  c[3];
+            },
+            24L); // Works with align as well
+
+        buf_free(&b);
     }
 
     return TEST_RESULTS();
