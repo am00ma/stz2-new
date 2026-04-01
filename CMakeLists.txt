@@ -65,33 +65,33 @@ target_link_options(${name} PRIVATE -fsanitize=address)
 # =========================================================================
 #                      Installation
 # =========================================================================
-# install(
-#     TARGETS ${name}
-#     EXPORT ${name}Targets
-#     FILE_SET HEADERS
-# )
-#
-# include(GNUInstallDirs)
-#
-# install(
-#     EXPORT ${name}Targets
-#     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${name}
-#     NAMESPACE ${name}::
-# )
-#
-# include(CMakePackageConfigHelpers)
-#
-# write_basic_package_version_file(
-#     ${CMAKE_CURRENT_BINARY_DIR}/${name}ConfigVersion.cmake
-#     COMPATIBILITY ExactVersion
-# )
-#
-# install(
-#     FILES
-#         cmake/${name}Config.cmake
-#         ${CMAKE_CURRENT_BINARY_DIR}/${name}ConfigVersion.cmake
-#     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${name}
-# )
+install(
+    TARGETS ${name}
+    EXPORT ${name}Targets
+    FILE_SET HEADERS
+)
+
+include(GNUInstallDirs)
+
+install(
+    EXPORT ${name}Targets
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${name}
+    NAMESPACE ${name}::
+)
+
+include(CMakePackageConfigHelpers)
+
+write_basic_package_version_file(
+    ${CMAKE_CURRENT_BINARY_DIR}/${name}ConfigVersion.cmake
+    COMPATIBILITY ExactVersion
+)
+
+install(
+    FILES
+        cmake/${name}Config.cmake
+        ${CMAKE_CURRENT_BINARY_DIR}/${name}ConfigVersion.cmake
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${name}
+)
 
 # =========================================================================
 #                      tests
