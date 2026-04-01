@@ -27,13 +27,15 @@ set_target_properties(${name} PROPERTIES C_STANDARD      23)
 
 target_sources(${name}
     PRIVATE
-        # src/types.c
+        src/pathlib.c
     PUBLIC
     FILE_SET HEADERS
     BASE_DIRS
         include
     FILES
         include/stz2/types.h
+        include/stz2/test.h
+        include/stz2/pathlib.h
 )
 
 target_include_directories(${name}
@@ -50,7 +52,7 @@ target_link_libraries(${name}
 target_compile_options(${name}
     PRIVATE
         -O0
-        -g
+        -ggdb
         -Wall
         -Wextra
         -fsanitize=address

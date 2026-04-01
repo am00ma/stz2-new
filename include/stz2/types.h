@@ -252,19 +252,21 @@ typedef struct
 } Str0;
 
 // clang-format off
-#define NullStr  (Str) {}
+#define StrNull  (Str) {}
 #define NullStr0 (Str0){}
 
 #define _(s)  (Str)  {.buf = s, .len = sizeof(s) - 1}
 #define _0(s) (Str0) {.buf = s, .len = sizeof(s) - 1}
 
 #define Str_(s)  (Str) {.buf = s.buf, .len = s.len}
-#define Str0_(s) (Str) {.buf = s.buf, .len = s.len}
+#define Str0_(s) (Str0){.buf = s.buf, .len = s.len}
 
-#define Str_Chars(s)  (Str){.buf = s, .len = strlen(s)}
+#define Str_Chars(s)  (Str) {.buf = s, .len = strlen(s)}
+#define Str0_Chars(s) (Str0){.buf = s, .len = strlen(s)}
 #define IsNullTerm(s) ((s).buf[(s).len] == '\0')
 
-#define _s(s) (int)s.len, s.buf
+// Safe for printing
+#define _s(s) (int)(s.buf ? s.len : 0), (s.buf ? s.buf : "")
 
 #define FNV_64_OFFSET_BASIS 0xcbf29ce484222325
 #define FNV_64_PRIME        1099511628211
@@ -440,7 +442,7 @@ SI bool str_equal(Str s1, Str s2)
 SI Str str_sub(Str src, isize i, isize j)
 {
     isize _len = src.len;
-    if ((i >= _len) || (j <= -1 * _len)) { return NullStr; }
+    if ((i >= _len) || (j <= -1 * _len)) { return StrNull; }
     if ((i <= -1 * _len) && (j >= _len)) { return src; }
     if (j >= _len) { j = _len; }
     if (i <= -1 * _len) { i = -1 * _len; }
@@ -488,7 +490,7 @@ SI isize str_find(Str s1, Str sub)
 
 SI Str str_copy(Buf* a, Str s, bool null_term)
 {
-    if (!s.len) return NullStr;                                                         // Null case
+    if (!s.len) return StrNull;                                                         // Null case
     Str c = {.buf = make(a, char, s.len + (int)null_term, ALLOC_NOZERO), .len = s.len}; // Alloc
     memcpy(c.buf, s.buf, c.len);                                                        // Copy string
     if (null_term) c.buf[c.len] = '\0'; // Set null if needed since we init with ARENA_NOZERO

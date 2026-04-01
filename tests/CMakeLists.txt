@@ -18,11 +18,12 @@ foreach(test_path ${test_paths})
     set_target_properties(${name} PROPERTIES C_STANDARD      23)
 
     target_include_directories(${name} PUBLIC ${CMAKE_SOURCE_DIR}/include)
+    target_link_libraries(${name} PUBLIC stz2)
 
     target_compile_options(${name}
         PRIVATE
             -O0
-            -g
+            -ggdb
             -Wall
             -Wextra
             -fsanitize=address
