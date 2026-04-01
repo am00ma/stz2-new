@@ -27,17 +27,13 @@ set_target_properties(${name} PROPERTIES C_STANDARD      23)
 
 target_sources(${name}
     PRIVATE
-
         # src/types.c
-
     PUBLIC
     FILE_SET HEADERS
     BASE_DIRS
         include
     FILES
-
         include/stz2/types.h
-
 )
 
 target_include_directories(${name}
@@ -57,7 +53,6 @@ target_compile_options(${name}
         -g
         -Wall
         -Wextra
-        -fno-exceptions
         -fdiagnostics-color=always)
 
 # =========================================================================
