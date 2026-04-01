@@ -3,10 +3,10 @@
 #define E2BIG  7  /* Argument list too long */
 #define EINVAL 22 /* Invalid argument */
 
-int args_parse(Buf* a, Args* args, int argc, char* argv[], bool strict)
+int args_parse(Buf* b, Args* args, int argc, char* argv[], bool strict)
 {
     // Only place where arena is used, but keeps strings which we need
-    struct option* long_options = make(a, struct option, args->len + 1, ALLOC_ZERO);
+    struct option* long_options = make(b, struct option, args->len + 1, ALLOC_ZERO);
     RANGE(i, args->len)
     {
         long_options[i] = (struct option){

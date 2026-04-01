@@ -291,6 +291,14 @@ SI isize str_find(Str s1, Str sub);
 
 SI u64 str_hash64(Str s);
 
+// TODO: Where does this fit?
+SI Str buf_shrink(Buf* src, Buf* sub)
+{
+    src->len -= sub->cap - sub->len;
+    sub->cap  = sub->len;
+    return Str_((*sub));
+}
+
 /* ---------------------------------------------------------------------------
  *  String derivatives
  * ------------------------------------------------------------------------- */
