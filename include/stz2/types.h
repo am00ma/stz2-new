@@ -411,7 +411,7 @@ SI bool  buf_ontop(Buf* b, char* buf, isize len) { return (b->len - len) == (buf
 SI Str str_new(Buf* b, isize len)
 {
     return (Str){
-        .buf = make(b, char, len),
+        .buf = make(b, char, len, ALLOC_NOZERO),
         .len = len,
     };
 }
@@ -474,9 +474,9 @@ SI isize str_find(Str s1, Str sub)
 
 SI Str str_copy(Buf* a, Str s, bool null_term)
 {
-    if (!s.len) return NullStr;                                           // Null case
-    Str c = {.buf = make(a, char, s.len + (int)null_term), .len = s.len}; // Alloc
-    memcpy(c.buf, s.buf, c.len);                                          // Copy string
+    if (!s.len) return NullStr;                                                         // Null case
+    Str c = {.buf = make(a, char, s.len + (int)null_term, ALLOC_NOZERO), .len = s.len}; // Alloc
+    memcpy(c.buf, s.buf, c.len);                                                        // Copy string
     if (null_term) c.buf[c.len] = '\0'; // Set null if needed since we init with ARENA_NOZERO
     return c;
 }

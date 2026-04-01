@@ -74,5 +74,20 @@ int main(int argc, char* argv[])
         buf_free(&b);
     }
 
+    TEST_CASE("On top")
+    {
+        buf_stack(b, 128);
+
+        EXPECT_FALSE(buf_ontop(&b, NULL, 0));
+
+        i32* x1 = make(&b, i32);
+        EXPECT_TRUE(buf_ontop(&b, (char*)x1, sizeof(*x1)));
+
+        make(&b, char, 3); // To throw off alignment
+
+        i32* x2 = make(&b, i32, 10);
+        EXPECT_TRUE(buf_ontop(&b, (char*)x2, 10 * sizeof(*x2)));
+    }
+
     return TEST_RESULTS();
 }
