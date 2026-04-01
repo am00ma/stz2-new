@@ -171,5 +171,33 @@ int main(int argc, char* argv[])
         }
     }
 
+    TEST_CASE("StrMap")
+    {
+        EXPECT_EQ_LONG(sizeof(StrMap), 24L);
+
+        buf_stack(b, 1024);
+        StrMap m = strmap_new(&b, 4);
+
+        RANGE(i, (1 << m.exp))
+        {
+            Str key = str_fmt(&b, "key-%ld", i);
+            Str val = str_fmt(&b, "val-%ld", i);
+            EXPECT_TRUE(strmap_insert(&m, key, val) >= 0);
+        }
+        EXPECT_FALSE(strmap_insert(&m, _("a"), _("b")) >= 0);
+
+        RANGE(i, (1 << m.exp))
+        {
+            Str key    = str_fmt(&b, "key-%ld", i);
+            Str val    = str_fmt(&b, "val-%ld", i);
+            Str newval = str_fmt(&b, "newval-%ld", i);
+            EXPECT_NEQ_NULL(strmap_lookup(&m, key));
+            EXPECT_EQ_STR(val, *strmap_lookup(&m, key));
+            *strmap_lookup(&m, key) = newval;
+            EXPECT_EQ_STR(newval, *strmap_lookup(&m, key));
+        }
+        EXPECT_EQ_NULL(strmap_lookup(&m, _("a")));
+    }
+
     return TEST_RESULTS();
 }

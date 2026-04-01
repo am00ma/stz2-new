@@ -299,15 +299,6 @@ typedef struct
 // Array of key value pairs
 DECLARE_ARRAY(KeyVals, KeyVal);
 
-// Hashmap of strings
-typedef struct
-{
-    KeyVal* buf;
-    isize   len;
-    isize   exp; ///< Exponent to power of 2
-
-} StrMap;
-
 /* ---------------------------------------------------------------------------
  * String operations: Trim, Split, Join
  * ------------------------------------------------------------------------- */
@@ -347,6 +338,22 @@ SI Strs str_splitc(Buf* b, Str src, char sep, int maxlen, StrSplitFlags flags);
 
 // Split by newline with option to ignore
 SI Strs str_split_lines(Buf* b, Str src, bool ignore_empty);
+
+/* ---------------------------------------------------------------------------
+ * String hashmap
+ * ------------------------------------------------------------------------- */
+
+typedef struct
+{
+    KeyVal* buf;
+    isize   len;
+    isize   exp; ///< Exponent to power of 2
+
+} StrMap;
+
+SI StrMap strmap_new(Buf* b, isize exp);
+SI Str*   strmap_lookup(StrMap* m, Str key);
+SI int    strmap_insert(StrMap* m, Str key, Str val);
 
 /* ---------------------------------------------------------------------------
  *  Implementation
@@ -641,4 +648,59 @@ SI Strs str_split_lines(Buf* b, Str src, bool ignore_empty)
     isize         maxlen = buf_avail(b, sizeof(Str));
     StrSplitFlags flags  = ignore_empty ? STRS_SPLIT_IGNORE_EMPTY : STRS_SPLIT_DEFAULT;
     return str_splitc(b, src, '\n', maxlen, flags);
+}
+
+// --------------- String Hashmap ---------------
+
+// Mask, step, index -> can use for your own hashmap
+SI int strmap_next(u64 hash, int exp, int i)
+{
+    unsigned mask = (1 << exp) - 1;
+    unsigned step = hash >> (64 - exp) | 1;
+    return (i + step) & mask;
+}
+
+SI StrMap strmap_new(Buf* b, isize exp)
+{
+    return (StrMap){
+        .buf = make(b, KeyVal, (1 << exp), ALLOC_ZERO),
+        .len = 0,
+        .exp = exp,
+    };
+}
+
+Str* strmap_lookup(StrMap* m, Str key)
+{
+    u64 hash  = str_hash64(key);
+    i32 count = 0;
+    for (i32 i = hash;;)
+    {
+        i = strmap_next(hash, m->exp, i);
+        if (m->buf[i].key.len == 0) { return NULL; }                       // found empty slot
+        else if (str_equal(key, m->buf[i].key)) { return &m->buf[i].val; } // found filled slot
+        if ((count++) >= (m->len)) { return NULL; }                        // no slot found after full iteration
+    }
+}
+
+int strmap_insert(StrMap* m, Str key, Str val)
+{
+    if ((m->len + 1) > (1 << m->exp)) { return -2; } // overflows capacity
+    u64 hash = str_hash64(key);
+    for (i32 i = hash;;)
+    {
+        i = strmap_next(hash, m->exp, i);
+        if (m->buf[i].key.len == 0) // found empty slot, insert
+        {
+            m->buf[i].key = key;
+            m->buf[i].val = val;
+            m->len++;
+            return i;
+        }
+        else if (str_equal(key, m->buf[i].key)) // found filled slot, overwrite
+        {
+            m->buf[i].val = val;
+            m->len++;
+            return i;
+        }
+    }
 }
