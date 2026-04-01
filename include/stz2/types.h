@@ -334,10 +334,10 @@ typedef enum
 SI KeyVal str_split_keyval(Str src, char sep, StrTrimFlags flags);
 
 // Support for various modes of splits
-SI Strs str_splitc(Buf* b, Str src, char sep, int maxlen, StrSplitFlags flags);
+SI Strs str_splitc(Buf* b, Str src, char sep, isize maxlen, StrSplitFlags flags);
 
 // Split by newline with option to ignore
-SI Strs str_split_lines(Buf* b, Str src, bool ignore_empty);
+SI Strs str_split_lines(Buf* b, Str src, isize maxlen, bool ignore_empty);
 
 /* ---------------------------------------------------------------------------
  * String hashmap
@@ -603,8 +603,9 @@ SI KeyVal str_split_keyval(Str src, char sep, StrTrimFlags flags)
     return keyval;
 }
 
-SI Strs str_splitc(Buf* b, Str src, char sep, int maxlen, StrSplitFlags flags)
+SI Strs str_splitc(Buf* b, Str src, char sep, isize maxlen, StrSplitFlags flags)
 {
+    if (maxlen == -1) maxlen = buf_avail(b, sizeof(Str));
     if (!maxlen) return (Strs){};
 
     char* start = &src.buf[0];
@@ -643,10 +644,10 @@ __done:
     return parts;
 }
 
-SI Strs str_split_lines(Buf* b, Str src, bool ignore_empty)
+SI Strs str_split_lines(Buf* b, Str src, isize maxlen, bool ignore_empty)
 {
-    isize         maxlen = buf_avail(b, sizeof(Str));
-    StrSplitFlags flags  = ignore_empty ? STRS_SPLIT_IGNORE_EMPTY : STRS_SPLIT_DEFAULT;
+    if (maxlen == -1) maxlen = buf_avail(b, sizeof(Str));
+    StrSplitFlags flags = ignore_empty ? STRS_SPLIT_IGNORE_EMPTY : STRS_SPLIT_DEFAULT;
     return str_splitc(b, src, '\n', maxlen, flags);
 }
 

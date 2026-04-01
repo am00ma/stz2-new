@@ -134,7 +134,7 @@ int main(int argc, char* argv[])
         RANGE(i, countof(cases))
         {
             buf_reset(&b);
-            Strs got = str_split_lines(&b, cases[i].src, cases[i].ignore);
+            Strs got = str_split_lines(&b, cases[i].src, -1, cases[i].ignore);
             EXPECT_EQ_LONG(got.len, cases[i].expected);
             EXPECT_EQ_LONG(b.len, (cases[i].expected * (isize)sizeof(Str)));
         }
