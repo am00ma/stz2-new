@@ -1,0 +1,18 @@
+# Build system
+/.cache
+/build
+compile_commands.json
+
+# Environment
+.envrc
+
+# Documentation
+/site
+*.pdf
+
+# Ingore deps, so they dont show up in sys
+/dependencies
+
+# Ignore experiments, its polluting filesearch
+/data
+/experiments
