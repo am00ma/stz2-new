@@ -223,7 +223,7 @@ SI void buf_reset(Buf* b);
 SI void buf_free(Buf* b);
 
 // Measurements
-SI isize buf_avail(Buf* b);
+SI isize buf_avail(Buf* b, usize objsize);
 SI bool  buf_ontop(Buf* b, char* buf, isize len);
 
 /* ---------------------------------------------------------------------------
@@ -323,13 +323,13 @@ typedef enum
     STRS_TRIM_NEWLINES   = 1U << 4, // '\n'
     STRS_TRIM_CRETURNS   = 1U << 5, // '\r'
     STRS_TRIM_LEFTRIGHT  = STRS_TRIM_LEFT | STRS_TRIM_RIGHT,
-    STRS_TRIM_WHITESPACE = STRS_TRIM_SPACES | STRS_TRIM_TABS | STRS_TRIM_NEWLINES,
+    STRS_TRIM_WHITESPACE = STRS_TRIM_SPACES | STRS_TRIM_TABS | STRS_TRIM_NEWLINES | STRS_TRIM_CRETURNS,
     STRS_TRIM_DEFAULT    = STRS_TRIM_LEFTRIGHT | STRS_TRIM_WHITESPACE,
 
 } StrTrimFlags;
 
-Str str_trim(Str src, StrTrimFlags flags);
-Str str_trimc(Str src, char pad);
+// Common things to trim
+SI Str str_trim(Str src, StrTrimFlags flags);
 
 typedef enum
 {
@@ -339,15 +339,14 @@ typedef enum
 
 } StrSplitFlags;
 
-// Support for various modes of splits
-Strs str_splitc(Buf* b, Str src, char sep, int maxlen, StrSplitFlags flags);
-Str  str_joinc(Buf* b, Strs src, char sep);
-
-// Split by newline and trim if needed
-Strs str_lines(Buf* b, Str src, int maxlen, StrSplitFlags split_flags, StrTrimFlags trim_flags);
-
 // Rather specific buf common type of split that requires trimming
-KeyVal str_split_keyval(Str src, char sep, StrTrimFlags flags);
+SI KeyVal str_split_keyval(Str src, char sep, StrTrimFlags flags);
+
+// Support for various modes of splits
+SI Strs str_splitc(Buf* b, Str src, char sep, int maxlen, StrSplitFlags flags);
+
+// Split by newline with option to ignore
+SI Strs str_split_lines(Buf* b, Str src, bool ignore_empty);
 
 /* ---------------------------------------------------------------------------
  *  Implementation
@@ -404,7 +403,7 @@ SI void buf_free(Buf* b)
 }
 
 // Measurements
-SI isize buf_avail(Buf* b) { return b->cap - b->len; }
+SI isize buf_avail(Buf* b, usize objsize) { return (b->cap - b->len) / objsize; }
 SI bool  buf_ontop(Buf* b, char* buf, isize len) { return (b->len - len) == (buf - b->buf); }
 
 // --------------- Str ---------------
@@ -497,7 +496,7 @@ SI Str str_fmtn(Buf* b, isize len, char const* fmt, ...)
 
 SI Str str_fmt(Buf* b, char const* fmt, ...)
 {
-    isize len = buf_avail(b);
+    isize len = buf_avail(b, sizeof(char));
     Str   s   = {.buf = make(b, char, len, ALLOC_NOZERO), .len = 0};
 
     va_list arg;
@@ -524,7 +523,7 @@ u64 str_hash64(Str s)
  * String operations
  * ------------------------------------------------------------------------- */
 
-Str str_trim(Str src, StrTrimFlags flags)
+SI Str str_trim(Str src, StrTrimFlags flags)
 {
     if (!src.len) return src;
 
@@ -568,7 +567,7 @@ Str str_trim(Str src, StrTrimFlags flags)
     };
 }
 
-KeyVal str_split_keyval(Str src, char sep, StrTrimFlags flags)
+SI KeyVal str_split_keyval(Str src, char sep, StrTrimFlags flags)
 {
     if (!src.len) return (KeyVal){};
 
@@ -597,7 +596,7 @@ KeyVal str_split_keyval(Str src, char sep, StrTrimFlags flags)
     return keyval;
 }
 
-Strs str_splitc(Buf* b, Str src, char sep, int maxlen, StrSplitFlags flags)
+SI Strs str_splitc(Buf* b, Str src, char sep, int maxlen, StrSplitFlags flags)
 {
     if (!maxlen) return (Strs){};
 
@@ -635,4 +634,11 @@ __done:
     b->len    -= sizeof(Str) * (maxlen - count);
 
     return parts;
+}
+
+SI Strs str_split_lines(Buf* b, Str src, bool ignore_empty)
+{
+    isize         maxlen = buf_avail(b, sizeof(Str));
+    StrSplitFlags flags  = ignore_empty ? STRS_SPLIT_IGNORE_EMPTY : STRS_SPLIT_DEFAULT;
+    return str_splitc(b, src, '\n', maxlen, flags);
 }

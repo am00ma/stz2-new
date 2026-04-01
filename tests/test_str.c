@@ -113,6 +113,33 @@ int main(int argc, char* argv[])
         }
     }
 
+    TEST_CASE("Split lines")
+    {
+        buf_stack(b, 128);
+
+        // TODO: STRS_SPLIT_SUBSTITUTE_NULL
+        struct
+        {
+            Str   src;
+            bool  ignore;
+            isize expected;
+        } cases[] = {
+            {_(""), true, 0},
+            {_(""), false, 1},
+            {_("a\nb\nc"), false, 3},
+            {_("a\n\n\n\nb\nc"), false, 6},
+            {_("a\n\n\n\nb\nc"), true, 3},
+        };
+
+        RANGE(i, countof(cases))
+        {
+            buf_reset(&b);
+            Strs got = str_split_lines(&b, cases[i].src, cases[i].ignore);
+            EXPECT_EQ_LONG(got.len, cases[i].expected);
+            EXPECT_EQ_LONG(b.len, (cases[i].expected * (isize)sizeof(Str)));
+        }
+    }
+
     TEST_CASE("KeyVal")
     {
         buf_stack(b, 128);
