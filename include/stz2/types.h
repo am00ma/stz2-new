@@ -88,7 +88,7 @@ typedef struct timespec TimeNsec;
         isize len;                                                                                                     \
     } name;
 
-#define DECLARE_BUFFER(name, type)                                                                                     \
+#define DECLARE_VECTOR(name, type)                                                                                     \
     typedef struct                                                                                                     \
     {                                                                                                                  \
         type* buf;                                                                                                     \
@@ -96,8 +96,11 @@ typedef struct timespec TimeNsec;
         isize cap;                                                                                                     \
     } name;
 
-#define array_first(arr) (arr).buf[0]
-#define array_last(arr)  (arr).buf[(arr).len - 1]
+#define arr_first(arr) (arr).buf[0]
+#define arr_last(arr)  (arr).buf[(arr).len - 1]
+
+#define vec_first(vec) (vec).buf[0]
+#define vec_last(vec)  (vec).buf[(vec).len - 1]
 
 /* ---------------------------------------------------------------------------
  *  Printing
