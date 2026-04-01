@@ -53,7 +53,9 @@ target_compile_options(${name}
         -g
         -Wall
         -Wextra
+        -fsanitize=address
         -fdiagnostics-color=always)
+target_link_options(${name} PRIVATE -fsanitize=address)
 
 # =========================================================================
 #                      Installation

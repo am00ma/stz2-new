@@ -25,9 +25,9 @@ foreach(test_path ${test_paths})
             -g
             -Wall
             -Wextra
-            -fno-exceptions
-            -fdiagnostics-color=always
-    )
+            -fsanitize=address
+            -fdiagnostics-color=always)
+    target_link_options(${name} PRIVATE -fsanitize=address)
 
     add_test(
         NAME              ${name}
