@@ -18,12 +18,17 @@ option(STZ_BUILD_TESTS "Build tests" ON)
 #                      stz
 # =========================================================================
 set(name stz2)
+
 add_library(${name} STATIC)
+
+set_target_properties(${name} PROPERTIES LANGUAGES       C)
+set_target_properties(${name} PROPERTIES LINKER_LANGUAGE C)
+set_target_properties(${name} PROPERTIES C_STANDARD      23)
 
 target_sources(${name}
     PRIVATE
 
-        src/types.c
+        # src/types.c
 
     PUBLIC
     FILE_SET HEADERS
@@ -46,8 +51,6 @@ target_link_libraries(${name}
         m
 )
 
-set_property(TARGET ${name} PROPERTY C_STANDARD 23)
-
 target_compile_options(${name}
     PRIVATE
         -O0
@@ -60,33 +63,33 @@ target_compile_options(${name}
 # =========================================================================
 #                      Installation
 # =========================================================================
-install(
-    TARGETS ${name}
-    EXPORT ${name}Targets
-    FILE_SET HEADERS
-)
-
-include(GNUInstallDirs)
-
-install(
-    EXPORT ${name}Targets
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${name}
-    NAMESPACE ${name}::
-)
-
-include(CMakePackageConfigHelpers)
-
-write_basic_package_version_file(
-    ${CMAKE_CURRENT_BINARY_DIR}/${name}ConfigVersion.cmake
-    COMPATIBILITY ExactVersion
-)
-
-install(
-    FILES
-        cmake/${name}Config.cmake
-        ${CMAKE_CURRENT_BINARY_DIR}/${name}ConfigVersion.cmake
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${name}
-)
+# install(
+#     TARGETS ${name}
+#     EXPORT ${name}Targets
+#     FILE_SET HEADERS
+# )
+#
+# include(GNUInstallDirs)
+#
+# install(
+#     EXPORT ${name}Targets
+#     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${name}
+#     NAMESPACE ${name}::
+# )
+#
+# include(CMakePackageConfigHelpers)
+#
+# write_basic_package_version_file(
+#     ${CMAKE_CURRENT_BINARY_DIR}/${name}ConfigVersion.cmake
+#     COMPATIBILITY ExactVersion
+# )
+#
+# install(
+#     FILES
+#         cmake/${name}Config.cmake
+#         ${CMAKE_CURRENT_BINARY_DIR}/${name}ConfigVersion.cmake
+#     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${name}
+# )
 
 # =========================================================================
 #                      tests

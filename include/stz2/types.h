@@ -49,6 +49,8 @@ typedef struct timespec TimeNsec;
  *  Essential Macros
  * ------------------------------------------------------------------------- */
 
+#define SI static inline
+
 #define countof(a)  (isize)(sizeof(a) / sizeof(*(a)))
 #define lengthof(s) (countof(s) - 1)
 
@@ -192,21 +194,6 @@ typedef struct
 
 } Buf;
 
-#define buf_stack(name, capacity)                                                                                      \
-    char buf__##name[(capacity)] = {};                                                                                 \
-    Buf  name                    = {.buf = buf__##name, .cap = (capacity), .len = 0};
-
-// Lifetime
-Buf  buf_new(isize cap);
-Buf  buf_new2(Buf* b, isize cap);
-void buf_reset(Buf* b);
-void buf_free(Buf* b);
-
-// Measurements
-isize buf_used(Buf* b);
-isize buf_avail(Buf* b);
-bool  buf_ontop(Buf* b, char* buf, isize len);
-
 typedef enum
 {
     ALLOC_NOZERO   = 0x0,
@@ -215,8 +202,8 @@ typedef enum
 
 } AllocFlags;
 
-// Handles alignment and capacity
-char* buf_alloc(Buf* b, isize objsize, isize align, isize count, AllocFlags flags);
+// OG function: Handles alignment and capacity
+SI char* buf_alloc(Buf* b, usize objsize, usize align, isize count, AllocFlags flags);
 
 // Actual way of calling, generic on type
 #define make(...)                 makex(__VA_ARGS__, make4, make3, make2)(__VA_ARGS__)
@@ -224,6 +211,20 @@ char* buf_alloc(Buf* b, isize objsize, isize align, isize count, AllocFlags flag
 #define make2(a, t)               (t*)buf_alloc(a, sizeof(t), alignof(t), 1, ARENA_NOZERO)
 #define make3(a, t, n)            (t*)buf_alloc(a, sizeof(t), alignof(t), n, ARENA_NOZERO)
 #define make4(a, t, n, f)         (t*)buf_alloc(a, sizeof(t), alignof(t), n, f)
+
+// Lifetime
+#define buf_stack(name, capacity)                                                                                      \
+    char buf__##name[(capacity)] = {};                                                                                 \
+    Buf  name                    = {.buf = buf__##name, .cap = (capacity), .len = 0};
+
+SI Buf  buf_new(isize cap);
+SI Buf  buf_new2(Buf* b, isize cap, AllocFlags flags);
+SI void buf_reset(Buf* b);
+SI void buf_free(Buf* b);
+
+// Measurements
+SI isize buf_avail(Buf* b);
+SI bool  buf_ontop(Buf* b, char* buf, isize len);
 
 /* ---------------------------------------------------------------------------
  *  Strings
@@ -348,3 +349,59 @@ Strs str_lines(Buf* b, Str src, int maxlen, StrSplitFlags split_flags, StrTrimFl
 
 // Rather specific buf common type of split that requires trimming
 KeyVal str_split_keyval(Str src, char sep, StrTrimFlags flags);
+
+/* ---------------------------------------------------------------------------
+ *  Implementation
+ * ------------------------------------------------------------------------- */
+
+// Allocation
+SI char* buf_alloc(Buf* b, usize objsize, usize align, isize count, AllocFlags flags)
+{
+    Assert((count > 0), "Failed: buf_alloc(%ld)", count);
+
+    char* beg = &b->buf[b->len];
+
+    if (count == 0) return beg;
+
+    isize pad = -(uptr)beg & (align - 1); // Works as align is power of 2
+    if (count > (b->cap - b->len) / (isize)objsize)
+    {
+        if (flags & ALLOC_SOFTFAIL) return 0;
+        else Assert(true, "Failed: buf_alloc: %ld * %ld < %ld", count, objsize, b->cap - b->len);
+    }
+
+    isize total  = count * objsize;
+    char* p      = beg + pad;
+    b->len      += pad + total;
+    if ((flags & ALLOC_ZERO)) p = (char*)memset(p, 0, total);
+
+    return p;
+}
+
+// Lifetime
+SI Buf buf_new(isize cap)
+{
+    Buf b = {};
+    b.buf = malloc(cap);
+    b.len = 0;
+    b.cap = b.buf ? cap : 0;
+    return b;
+}
+SI Buf buf_new2(Buf* b, isize cap, AllocFlags flags)
+{
+    Buf dst = {};
+    dst.buf = buf_alloc(b, sizeof(char), alignof(char), cap, flags);
+    dst.len = 0;
+    dst.cap = dst.buf ? cap : 0;
+    return dst;
+}
+SI void buf_reset(Buf* b) { b->len = 0; }
+SI void buf_free(Buf* b)
+{
+    if (b->buf) free(b->buf);
+    *b = (Buf){};
+}
+
+// Measurements
+SI isize buf_avail(Buf* b) { return b->cap - b->len; }
+SI bool  buf_ontop(Buf* b, char* buf, isize len) { return (b->len - len) == (buf - b->buf); }

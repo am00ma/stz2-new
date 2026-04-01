@@ -13,12 +13,11 @@ foreach(test_path ${test_paths})
 
     add_executable(${name} ${test_path})
 
-    target_link_libraries(${name}
-        PRIVATE
-            stz2
-    )
+    set_target_properties(${name} PROPERTIES LANGUAGES       C)
+    set_target_properties(${name} PROPERTIES LINKER_LANGUAGE C)
+    set_target_properties(${name} PROPERTIES C_STANDARD      23)
 
-    set_property(TARGET ${name} PROPERTY C_STANDARD 23)
+    target_include_directories(${name} PUBLIC ${CMAKE_SOURCE_DIR}/include)
 
     target_compile_options(${name}
         PRIVATE
