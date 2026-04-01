@@ -1,4 +1,5 @@
 #include "stz2/path.h"
+#include "stz2/cmd.h"
 
 #include <errno.h>    // IWYU pragma: keep
 #include <sys/stat.h> // stat
@@ -135,6 +136,29 @@ __close:
 
     fclose(f); // Ignore error from close
     if (err) return err;
+
+    return 0;
+}
+
+int path_list(Buf* b, Str0 fd_cmd, Str0s* paths)
+{
+    int err = 0;
+
+    // Let's divide stdout, stderr by 80%, 20%
+    CmdResult res     = {};
+    isize     max_out = (buf_avail(b, sizeof(char)) * 8) / 10;
+    isize     max_err = (buf_avail(b, sizeof(char)) * 2) / 10;
+
+    err = cmd_exec(b, fd_cmd, CmdShellBash, max_out, max_err, &res);
+    if (err) return err;
+    if (res.status) return err;
+
+    Strs lines = str_splitc(b, res.out, '\n', -1, STRS_SPLIT_IGNORE_EMPTY | STRS_SPLIT_SUBSTITUTE_NULL);
+
+    // To ensure cast works, can be removed later
+    RANGE(i, lines.len) { Assert(IsNullTerm(lines.buf[i]), ""); }
+
+    *paths = *(Str0s*)&lines;
 
     return 0;
 }

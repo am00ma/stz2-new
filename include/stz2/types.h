@@ -305,6 +305,7 @@ SI Str buf_shrink(Buf* src, Buf* sub)
 
 // Array of strings
 DECLARE_ARRAY(Strs, Str);
+DECLARE_ARRAY(Str0s, Str0);
 
 // Key value pairs
 typedef struct
@@ -763,6 +764,8 @@ SI void printvar__Strs(Strs* x)
     p_inline("%.*s]", _s(x->buf[x->len - 1]));
 }
 
+SI void printvar__Str0s(Str0s* x) { printvar__Strs((Strs*)x); }
+
 SI void printvar__StrMap(StrMap* x)
 {
     if (!x->len)
@@ -801,6 +804,7 @@ SI void printvar__StrMap(StrMap* x)
         Str: printvar__Str,                                                                                            \
         Str0: printvar__Str0,                                                                                          \
         Strs: printvar__Strs,                                                                                          \
+        Str0s: printvar__Str0s,                                                                                        \
         StrMap: printvar__StrMap)(&x)
 
 #define PrintLn(x)         (p_inline("%s = ", #x), PrintVar(x), p_newline());

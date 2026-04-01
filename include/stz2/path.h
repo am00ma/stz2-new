@@ -12,3 +12,5 @@ Str0 path_join(Buf* b, Str0 parent, Str0 path);
 int path_delete(Str0 path);
 int path_read_text(Buf* b, Str0 path, Str* dst);
 int path_write_text(Str0 path, Str src, const char* mode);
+
+int path_list(Buf* b, Str0 fd_cmd, Str0s* paths);

@@ -91,5 +91,20 @@ int main(int argc, char* argv[])
         buf_free(&b);
     }
 
+    TEST_CASE("list")
+    {
+        Buf   b   = buf_new(MB_);
+        int   err = 0;
+        Str0s dst = {};
+
+        err = path_list(&b, _0("fd -e md | sort"), &dst);
+        EXPECT_EQ_INT(err, 0);
+
+        Str expected = _("CHANGELOG.md");
+        EXPECT_EQ_STR(expected, Str_(arr_first(dst)));
+
+        buf_free(&b);
+    }
+
     return TEST_RESULTS();
 }
