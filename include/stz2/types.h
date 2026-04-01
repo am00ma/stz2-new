@@ -37,6 +37,10 @@ typedef int64_t  i64;
 typedef float    f32;
 typedef double   f64;
 
+typedef void*       Any;
+typedef char*       Chars;
+typedef const char* CChars;
+
 /* ---------------------------------------------------------------------------
  *  Time and dates
  * ------------------------------------------------------------------------- */
@@ -132,7 +136,7 @@ typedef struct timespec TimeNsec;
 #define p_resetline() p_log(fprintf, stderr, COLOR_RESET "\n")
 
 #define p_line(fmt, ...)             p_log(fprintf, stderr, fmt "\n", ##__VA_ARGS__)
-#define p_inline(fmt, ...)           p_log(fprintf, stderr, ##__VA_ARGS__)
+#define p_inline(fmt, ...)           p_log(fprintf, stderr, fmt, ##__VA_ARGS__)
 #define p_color(color, fmt, ...)     p_log(fprintf, stderr, color fmt COLOR_RESET, ##__VA_ARGS__)
 #define p_colorline(color, fmt, ...) p_log(fprintf, stderr, color fmt COLOR_RESET "\n", ##__VA_ARGS__)
 #define p_url(link, text)            p_log(fprintf, stderr, STYLE_URL_START link STYLE_URL_MID text STYLE_URL_END)
@@ -291,6 +295,10 @@ SI u64 str_hash64(Str s);
 
 // Array of strings
 DECLARE_ARRAY(Strs, Str);
+
+// clang-format off
+#define strs_print(s) if(s.len){RANGE(i, s.len-1) {p_inline("%.*s, ", _s(s.buf[i]));} p_line("%.*s", _s(s.buf[s.len - 1]));}
+// clang-format on
 
 // Key value pairs
 typedef struct
@@ -708,3 +716,73 @@ int strmap_insert(StrMap* m, Str key, Str val)
         }
     }
 }
+
+/* ---------------------------------------------------------------------------
+ *  Generics
+ * ------------------------------------------------------------------------- */
+
+#define X_TABLE_PRIMITIVES(x, type, fmt, args)                                                                         \
+    X(x, Any, "%p", x)                                                                                                 \
+    X(x, Chars, "%s", x)                                                                                               \
+    X(x, CChars, "%s", x)                                                                                              \
+    X(x, bool, "%s", x ? "true" : "false")                                                                             \
+    X(x, u16, "%u", x)                                                                                                 \
+    X(x, u32, "%u", x)                                                                                                 \
+    X(x, u64, "%lu", x)                                                                                                \
+    X(x, i16, "%d", x)                                                                                                 \
+    X(x, i32, "%d", x)                                                                                                 \
+    X(x, i64, "%ld", x)                                                                                                \
+    X(x, f32, "%f", x)                                                                                                 \
+    X(x, f64, "%f", x)                                                                                                 \
+    X(x, Str, "%.*s", _s(x))                                                                                           \
+    X(x, Str0, "%.*s", _s(x))
+
+#define X_MACRO_PRINT(x, type, fmt, args)                                                                              \
+    SI void println__##type(const char* name, type x) { p_line("%s = " fmt, name, args); };
+
+#define X X_MACRO_PRINT
+X_TABLE_PRIMITIVES(x, type, fmt, args)
+#undef X
+
+SI void println__Strs(const char* name, Strs x)
+{
+    p_inline("%s = ", name);
+    if (x.len)
+    {
+        RANGE(i, x.len - 1) { p_inline("%.*s, ", _s(x.buf[i])); }
+        p_line("%.*s", _s(x.buf[x.len - 1]));
+    }
+}
+
+SI void println__StrMap(const char* name, StrMap x)
+{
+    p_inline("%s = {", name);
+    if (x.len)
+    {
+        RANGE(i, x.len - 1)
+        {
+            if (x.buf[i].key.buf) p_inline("%.*s: %.*s, ", _s(x.buf[i].key), _s(x.buf[i].val));
+        }
+        if (x.buf[x.len - 1].key.buf) p_inline("%.*s: %.*s", _s(x.buf[x.len - 1].key), _s(x.buf[x.len - 1].val));
+    }
+    p_line("}");
+}
+
+#define PrintVarLn(x)                                                                                                  \
+    _Generic((x),                                                                                                      \
+        bool: println__bool,                                                                                           \
+        u16: println__u16,                                                                                             \
+        u32: println__u32,                                                                                             \
+        u64: println__u64,                                                                                             \
+        i16: println__i16,                                                                                             \
+        i32: println__i32,                                                                                             \
+        i64: println__i64,                                                                                             \
+        f32: println__f32,                                                                                             \
+        f64: println__f64,                                                                                             \
+        Any: println__Any,                                                                                             \
+        Chars: println__Chars,                                                                                         \
+        CChars: println__CChars,                                                                                       \
+        Str: println__Str,                                                                                             \
+        Str0: println__Str0,                                                                                           \
+        Strs: println__Strs,                                                                                           \
+        StrMap: println__StrMap)(#x, x)
