@@ -4,7 +4,7 @@
 
 int main(int argc, char* argv[])
 {
-    TEST_SUITE("buf");
+    TEST_SUITE("Buf");
 
     TEST_CASE("Size") { EXPECT_EQ_LONG(sizeof(Buf), 24L); }
 

@@ -245,6 +245,9 @@ typedef struct
 } Str0;
 
 // clang-format off
+#define NullStr  (Str) {}
+#define NullStr0 (Str0){}
+
 #define _(s)  (Str)  {.buf = s, .len = sizeof(s) - 1}
 #define _0(s) (Str0) {.buf = s, .len = sizeof(s) - 1}
 
@@ -254,6 +257,8 @@ typedef struct
 #define Str_Chars(s)  (Str){.buf = s, .len = strlen(s)}
 #define IsNullTerm(s) ((s).buf[(s).len] == '\0')
 
+#define _s(s) (int)s.len, s.buf
+
 #define FNV_64_OFFSET_BASIS 0xcbf29ce484222325
 #define FNV_64_PRIME        1099511628211
 
@@ -261,27 +266,21 @@ typedef struct
 
 // --------------- Str functions ---------------
 
-Str str_new(Buf* b, isize len);
-Str str_copy(Buf* b, Str s, bool null_terminated);
+SI Str  str_new(Buf* b, isize len);
+SI bool str_equal(Str s1, Str s2);
 
-bool str_equal(Str s1, Str s2);
-u64  str_hash64(Str s);
+SI Str str_copy(Buf* b, Str s, bool null_terminated);
+SI Str str_fmtn(Buf* b, isize len, const char* fmt, ...) __attribute__((format(printf, 3, 4)));
+SI Str str_fmt(Buf* b, const char* fmt, ...) __attribute__((format(printf, 2, 3)));
 
 // 'Safe' substrings and comparisons
-Str   str_sub(Str s1, isize start, isize end); // Inclusive when using negative indices
-bool  str_startswith(Str s1, Str prefix);
-bool  str_endswith(Str s1, Str suffix);
-bool  str_contains(Str s1, Str sub);
-isize str_find(Str s1, Str sub);
+SI Str   str_sub(Str s1, isize start, isize end); // Inclusive when using negative indices
+SI bool  str_startswith(Str s1, Str prefix);
+SI bool  str_endswith(Str s1, Str suffix);
+SI bool  str_contains(Str s1, Str sub);
+SI isize str_find(Str s1, Str sub);
 
-Str str_fmt(Buf* b, const char* fmt, ...);
-Str str_fmtn(Buf* b, isize len, const char* fmt, ...);
-
-Str str_cat(Buf* b, Str s);
-Str str_catc(Buf* b, char c);
-
-// --------------- Str0 functions - same, just repeated with null_terminated ---------------
-Str0 str0_fmtn(Buf* b, isize len, const char* fmt, ...);
+SI u64 str_hash64(Str s);
 
 /* ---------------------------------------------------------------------------
  *  String derivatives
@@ -354,10 +353,12 @@ KeyVal str_split_keyval(Str src, char sep, StrTrimFlags flags);
  *  Implementation
  * ------------------------------------------------------------------------- */
 
+// --------------- Buf ---------------
+
 // Allocation
 SI char* buf_alloc(Buf* b, usize objsize, usize align, isize count, AllocFlags flags)
 {
-    Assert((count > 0), "Failed: buf_alloc(%ld)", count);
+    Assert((count >= 0), "Failed: buf_alloc(%ld)", count);
 
     char* beg = &b->buf[b->len];
 
@@ -405,3 +406,233 @@ SI void buf_free(Buf* b)
 // Measurements
 SI isize buf_avail(Buf* b) { return b->cap - b->len; }
 SI bool  buf_ontop(Buf* b, char* buf, isize len) { return (b->len - len) == (buf - b->buf); }
+
+// --------------- Str ---------------
+
+SI Str str_new(Buf* b, isize len)
+{
+    return (Str){
+        .buf = make(b, char, len),
+        .len = len,
+    };
+}
+
+SI bool str_equal(Str s1, Str s2)
+{
+    if (s1.len != s2.len) { return false; }
+    if (s1.len == 0) { return true; }
+    return !memcmp(s1.buf, s2.buf, s1.len);
+}
+
+SI Str str_sub(Str src, isize i, isize j)
+{
+    isize _len = src.len;
+    if ((i >= _len) || (j <= -1 * _len)) { return NullStr; }
+    if ((i <= -1 * _len) && (j >= _len)) { return src; }
+    if (j >= _len) { j = _len; }
+    if (i <= -1 * _len) { i = -1 * _len; }
+    if (i < 0) { i = _len + i; }
+    if (j < 0) { j = _len + j + 1; } // Make it inclusive, as listing to -1 is most common
+
+    if (i >= j) { return (Str){.buf = &src.buf[i], 0}; };
+    return (Str){.buf = &src.buf[i], .len = j - i};
+}
+
+SI bool str_startswith(Str s1, Str prefix)
+{
+    if (s1.len < prefix.len) return false;
+    return str_equal(str_sub(s1, 0, prefix.len), prefix);
+}
+
+SI bool str_endswith(Str s1, Str suffix)
+{
+    if (s1.len < suffix.len) return false;
+    return str_equal(str_sub(s1, s1.len - suffix.len, s1.len), suffix);
+}
+
+SI bool str_contains(Str s1, Str sub)
+{
+    if (!sub.len) return true; // Always contains NullStr
+    RANGE(i, s1.len)
+    {
+        if (!(s1.buf[i] == sub.buf[0])) continue;
+        return str_equal((Str){&s1.buf[i], s1.len - i}, sub);
+    }
+    return false;
+}
+
+SI isize str_find(Str s1, Str sub)
+{
+    if (!sub.len) return 0; // Always finds NullStr
+    RANGE(i, s1.len)
+    {
+        if (!(s1.buf[i] == sub.buf[0])) continue;
+        if (str_equal((Str){&s1.buf[i], s1.len - i}, sub)) { return i; }
+        else return -1;
+    }
+    return -1;
+}
+
+SI Str str_copy(Buf* a, Str s, bool null_term)
+{
+    if (!s.len) return NullStr;                                           // Null case
+    Str c = {.buf = make(a, char, s.len + (int)null_term), .len = s.len}; // Alloc
+    memcpy(c.buf, s.buf, c.len);                                          // Copy string
+    if (null_term) c.buf[c.len] = '\0'; // Set null if needed since we init with ARENA_NOZERO
+    return c;
+}
+
+SI Str str_fmtn(Buf* b, isize len, char const* fmt, ...)
+{
+    Str s = {.buf = make(b, char, len, ALLOC_NOZERO), .len = 0};
+
+    va_list arg;
+    va_start(arg, fmt);
+    s.len = vsnprintf(s.buf, len, fmt, arg);
+    va_end(arg);
+
+    b->len -= (len - s.len);
+    return s;
+}
+
+SI Str str_fmt(Buf* b, char const* fmt, ...)
+{
+    isize len = buf_avail(b);
+    Str   s   = {.buf = make(b, char, len, ALLOC_NOZERO), .len = 0};
+
+    va_list arg;
+    va_start(arg, fmt);
+    s.len = vsnprintf(s.buf, len, fmt, arg);
+    va_end(arg);
+
+    b->len -= (len - s.len);
+    return s;
+}
+
+u64 str_hash64(Str s)
+{
+    u64 h = FNV_64_OFFSET_BASIS;
+    RANGE(i, s.len)
+    {
+        h ^= s.buf[i] & 255;
+        h *= FNV_64_PRIME;
+    }
+    return h;
+}
+
+/* ---------------------------------------------------------------------------
+ * String operations
+ * ------------------------------------------------------------------------- */
+
+Str str_trim(Str src, StrTrimFlags flags)
+{
+    if (!src.len) return src;
+
+    isize start = 0;
+    if (flags & STRS_TRIM_LEFT)
+    {
+        RANGE(i, src.len)
+        {
+            if ((src.buf[i] == ' ') && (flags & STRS_TRIM_SPACES)) continue;
+            else if ((src.buf[i] == '\t') && (flags & STRS_TRIM_TABS)) continue;
+            else if ((src.buf[i] == '\n') && (flags & STRS_TRIM_NEWLINES)) continue;
+            else if ((src.buf[i] == '\r') && (flags & STRS_TRIM_CRETURNS)) continue;
+            else
+            {
+                start = i;
+                break;
+            }
+        }
+    }
+
+    isize stop = src.len;
+    if (flags & STRS_TRIM_RIGHT)
+    {
+        for (isize i = src.len - 1; i >= 0; i--)
+        {
+            if ((src.buf[i] == ' ') && (flags & STRS_TRIM_SPACES)) continue;
+            else if ((src.buf[i] == '\t') && (flags & STRS_TRIM_TABS)) continue;
+            else if ((src.buf[i] == '\n') && (flags & STRS_TRIM_NEWLINES)) continue;
+            else if ((src.buf[i] == '\r') && (flags & STRS_TRIM_CRETURNS)) continue;
+            else
+            {
+                stop = i + 1;
+                break;
+            }
+        }
+    }
+
+    return (Str){
+        .buf = &src.buf[start],
+        .len = stop - start,
+    };
+}
+
+KeyVal str_split_keyval(Str src, char sep, StrTrimFlags flags)
+{
+    if (!src.len) return (KeyVal){};
+
+    isize found = -1;
+    RANGE(i, src.len)
+    {
+        if (!(src.buf[i] == sep)) continue;
+        found = i;
+        break;
+    }
+
+    // If not found: Probably means key with no val
+    // e.g. with sep ':'
+    //      src is `hello ` instead of `hello: hi`
+    //      so return `hello`,``
+    if (found < 0) return (KeyVal){str_trim(src, flags), {}};
+
+    KeyVal keyval = {
+        .key = {.buf = src.buf, .len = found},
+        .val = {.buf = &src.buf[found + 1], .len = src.len - found - 1},
+    };
+
+    keyval.key = str_trim(keyval.key, flags);
+    keyval.val = str_trim(keyval.val, flags);
+
+    return keyval;
+}
+
+Strs str_splitc(Buf* b, Str src, char sep, int maxlen, StrSplitFlags flags)
+{
+    if (!maxlen) return (Strs){};
+
+    char* start = &src.buf[0];
+    Strs  parts = {.buf = make(b, Str, maxlen, ALLOC_NOZERO), .len = maxlen};
+    isize count = 0;
+    RANGE(i, src.len)
+    {
+        if (sep == src.buf[i])
+        {
+            isize len = &src.buf[i] - start;
+            if (len || !(flags & STRS_SPLIT_IGNORE_EMPTY))
+            {
+                parts.buf[count] = (Str){.buf = start, .len = len};
+                count++;
+                if (count >= maxlen) goto __done;
+            }
+            if (flags & STRS_SPLIT_SUBSTITUTE_NULL) src.buf[i] = '\0';
+            start = &src.buf[i] + 1; // Skip delimiter
+        }
+    }
+
+    if ((isize)(start - src.buf) <= src.len)
+    {
+        isize len = src.len - (start - src.buf);
+        if (len || !(flags & STRS_SPLIT_IGNORE_EMPTY))
+        {
+            parts.buf[count] = (Str){.buf = start, .len = len};
+            count++;
+        }
+    }
+
+__done:
+    parts.len  = count;
+    b->len    -= sizeof(Str) * (maxlen - count);
+
+    return parts;
+}
