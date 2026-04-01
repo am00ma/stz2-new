@@ -296,10 +296,6 @@ SI u64 str_hash64(Str s);
 // Array of strings
 DECLARE_ARRAY(Strs, Str);
 
-// clang-format off
-#define strs_print(s) if(s.len){RANGE(i, s.len-1) {p_inline("%.*s, ", _s(s.buf[i]));} p_line("%.*s", _s(s.buf[s.len - 1]));}
-// clang-format on
-
 // Key value pairs
 typedef struct
 {
@@ -718,71 +714,103 @@ int strmap_insert(StrMap* m, Str key, Str val)
 }
 
 /* ---------------------------------------------------------------------------
- *  Generics
+ *  Printing Generics
  * ------------------------------------------------------------------------- */
 
 #define X_TABLE_PRIMITIVES(x, type, fmt, args)                                                                         \
-    X(x, Any, "%p", x)                                                                                                 \
-    X(x, Chars, "%s", x)                                                                                               \
-    X(x, CChars, "%s", x)                                                                                              \
-    X(x, bool, "%s", x ? "true" : "false")                                                                             \
-    X(x, u16, "%u", x)                                                                                                 \
-    X(x, u32, "%u", x)                                                                                                 \
-    X(x, u64, "%lu", x)                                                                                                \
-    X(x, i16, "%d", x)                                                                                                 \
-    X(x, i32, "%d", x)                                                                                                 \
-    X(x, i64, "%ld", x)                                                                                                \
-    X(x, f32, "%f", x)                                                                                                 \
-    X(x, f64, "%f", x)                                                                                                 \
-    X(x, Str, "%.*s", _s(x))                                                                                           \
-    X(x, Str0, "%.*s", _s(x))
+    X(x, Any, "%p", *x)                                                                                                \
+    X(x, Chars, "%s", *x)                                                                                              \
+    X(x, CChars, "%s", *x)                                                                                             \
+    X(x, bool, "%s", *x ? "true" : "false")                                                                            \
+    X(x, u16, "%u", *x)                                                                                                \
+    X(x, u32, "%u", *x)                                                                                                \
+    X(x, u64, "%lu", *x)                                                                                               \
+    X(x, i16, "%d", *x)                                                                                                \
+    X(x, i32, "%d", *x)                                                                                                \
+    X(x, i64, "%ld", *x)                                                                                               \
+    X(x, f32, "%f", *x)                                                                                                \
+    X(x, f64, "%f", *x)                                                                                                \
+    X(x, Str, "%.*s", _s((*x)))                                                                                        \
+    X(x, Str0, "%.*s", _s((*x)))
 
 #define X_MACRO_PRINT(x, type, fmt, args)                                                                              \
-    SI void println__##type(const char* name, type x) { p_line("%s = " fmt, name, args); };
+    SI void printvar__##type(type* x) { p_inline(fmt, args); };
 
 #define X X_MACRO_PRINT
 X_TABLE_PRIMITIVES(x, type, fmt, args)
 #undef X
 
-SI void println__Strs(const char* name, Strs x)
+SI void printvar__Strs(Strs* x)
 {
-    p_inline("%s = ", name);
-    if (x.len)
+    if (!x->len)
     {
-        RANGE(i, x.len - 1) { p_inline("%.*s, ", _s(x.buf[i])); }
-        p_line("%.*s", _s(x.buf[x.len - 1]));
+        p_inline("[]");
+        return;
     }
+
+    p_inline("[");
+    RANGE(i, x->len - 1) { p_inline("%.*s, ", _s(x->buf[i])); }
+    p_inline("%.*s]", _s(x->buf[x->len - 1]));
 }
 
-SI void println__StrMap(const char* name, StrMap x)
+SI void printvar__StrMap(StrMap* x)
 {
-    p_inline("%s = {", name);
-    if (x.len)
+    if (!x->len)
     {
-        RANGE(i, x.len - 1)
-        {
-            if (x.buf[i].key.buf) p_inline("%.*s: %.*s, ", _s(x.buf[i].key), _s(x.buf[i].val));
-        }
-        if (x.buf[x.len - 1].key.buf) p_inline("%.*s: %.*s", _s(x.buf[x.len - 1].key), _s(x.buf[x.len - 1].val));
+        p_inline("{}");
+        return;
     }
-    p_line("}");
+
+    p_inline("{");
+    isize count = 0;
+    RANGE(i, (1 << x->exp))
+    {
+        if (!(x->buf[i].key.buf)) continue;
+
+        p_inline("%.*s = %.*s", _s(x->buf[i].key), _s(x->buf[i].val));
+        count++;
+        if (count < x->len) { p_inline(", "); }
+    }
+    p_inline("}");
 }
 
-#define PrintVarLn(x)                                                                                                  \
+#define PrintVar(x)                                                                                                    \
     _Generic((x),                                                                                                      \
-        bool: println__bool,                                                                                           \
-        u16: println__u16,                                                                                             \
-        u32: println__u32,                                                                                             \
-        u64: println__u64,                                                                                             \
-        i16: println__i16,                                                                                             \
-        i32: println__i32,                                                                                             \
-        i64: println__i64,                                                                                             \
-        f32: println__f32,                                                                                             \
-        f64: println__f64,                                                                                             \
-        Any: println__Any,                                                                                             \
-        Chars: println__Chars,                                                                                         \
-        CChars: println__CChars,                                                                                       \
-        Str: println__Str,                                                                                             \
-        Str0: println__Str0,                                                                                           \
-        Strs: println__Strs,                                                                                           \
-        StrMap: println__StrMap)(#x, x)
+        bool: printvar__bool,                                                                                          \
+        u16: printvar__u16,                                                                                            \
+        u32: printvar__u32,                                                                                            \
+        u64: printvar__u64,                                                                                            \
+        i16: printvar__i16,                                                                                            \
+        i32: printvar__i32,                                                                                            \
+        i64: printvar__i64,                                                                                            \
+        f32: printvar__f32,                                                                                            \
+        f64: printvar__f64,                                                                                            \
+        Any: printvar__Any,                                                                                            \
+        Chars: printvar__Chars,                                                                                        \
+        CChars: printvar__CChars,                                                                                      \
+        Str: printvar__Str,                                                                                            \
+        Str0: printvar__Str0,                                                                                          \
+        Strs: printvar__Strs,                                                                                          \
+        StrMap: printvar__StrMap)(&x)
+
+#define PrintLn(x)         (p_inline("%s = ", #x), PrintVar(x), p_newline());
+#define PrintAligned(x, n) (p_inline("%-" #n "s = ", #x), PrintVar(x), p_newline());
+
+// --------------- The Infamous X macros ---------------
+
+#define X_PRINT_FIELD(name, idx, type, ref, field, key)                                                                \
+    p_inline("%s = ", key);                                                                                            \
+    printvar__##type(ref(x->field));                                                                                   \
+    if (idx + 1 < X_COUNT_##name) p_inline(", ");
+
+#define X_DECLARE_PRINT(name, idx, type, ref, field, key)                                                              \
+    SI void printvar__##name(name* x)                                                                                  \
+    {                                                                                                                  \
+        p_inline("{");                                                                                                 \
+        X_TABLE_##name(idx, type, ref, field, key);                                                                    \
+        p_inline("}");                                                                                                 \
+    }
+
+/* ---------------------------------------------------------------------------
+ *  Parsing Generics
+ * ------------------------------------------------------------------------- */
