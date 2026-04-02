@@ -314,8 +314,16 @@ typedef struct
     Str val;
 } KeyVal;
 
-// Array of key value pairs
 DECLARE_ARRAY(KeyVals, KeyVal);
+
+// Key idx pairs
+typedef struct
+{
+    Str key;
+    i64 idx;
+} KeyIdx;
+
+DECLARE_ARRAY(KeyIdxs, KeyIdx);
 
 /* ---------------------------------------------------------------------------
  * String operations: Trim, Split, Join
@@ -372,6 +380,18 @@ typedef struct
 SI StrMap strmap_new(Buf* b, isize exp);
 SI Str*   strmap_lookup(StrMap* m, Str key);
 SI int    strmap_insert(StrMap* m, Str key, Str val);
+
+typedef struct
+{
+    Str*  buf;
+    isize len;
+    isize exp; ///< Exponent to power of 2
+
+} StrSet;
+
+SI StrSet strset_new(Buf* b, isize exp);
+SI int    strset_lookup(StrSet* m, Str key);
+SI int    strset_insert(StrSet* m, Str key);
 
 /* ---------------------------------------------------------------------------
  *  Implementation
@@ -724,6 +744,60 @@ int strmap_insert(StrMap* m, Str key, Str val)
     }
 }
 
+// --------------- String Set ---------------
+
+// Mask, step, index -> can use for your own hashmap
+SI int strset_next(u64 hash, int exp, int i)
+{
+    unsigned mask = (1 << exp) - 1;
+    unsigned step = hash >> (64 - exp) | 1;
+    return (i + step) & mask;
+}
+
+SI StrSet strset_new(Buf* b, isize exp)
+{
+    return (StrSet){
+        .buf = make(b, Str, (1 << exp), ALLOC_ZERO),
+        .len = 0,
+        .exp = exp,
+    };
+}
+
+int strset_lookup(StrSet* m, Str key)
+{
+    u64 hash  = str_hash64(key);
+    i32 count = 0;
+    for (i32 i = hash;;)
+    {
+        i = strset_next(hash, m->exp, i);
+        if (m->buf[i].len == 0) { return -1; }            // found empty slot
+        else if (str_equal(key, m->buf[i])) { return i; } // found filled slot
+        if ((count++) >= (m->len)) { return -1; }         // no slot found after full iteration
+    }
+}
+
+int strset_insert(StrSet* m, Str key)
+{
+    if ((m->len + 1) > (1 << m->exp)) { return -1; } // overflows capacity
+
+    u64 hash = str_hash64(key);
+    for (i32 i = hash;;)
+    {
+        i = strset_next(hash, m->exp, i);
+        if (m->buf[i].len == 0)
+        {
+            m->buf[i] = key;
+            m->len++;
+            return i; // found empty slot, insert
+        }
+        else if (str_equal(key, m->buf[i]))
+        {
+            m->len++;
+            return i; // found filled slot, overwrite
+        }
+    }
+}
+
 /* ---------------------------------------------------------------------------
  *  Printing Generics
  * ------------------------------------------------------------------------- */
@@ -810,7 +884,7 @@ SI void printvar__StrMap(StrMap* x)
 #define PrintLn(x)         (p_inline("%s = ", #x), PrintVar(x), p_newline());
 #define PrintAligned(x, n) (p_inline("%-" #n "s = ", #x), PrintVar(x), p_newline());
 
-// --------------- The Infamous X macros ---------------
+// --------------- The Infamous X macros for plebian reflection ---------------
 
 #define X_PRINT_FIELD(name, idx, type, ref, field, key)                                                                \
     p_inline("%s = ", key);                                                                                            \

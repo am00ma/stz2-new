@@ -30,6 +30,7 @@ target_sources(${name}
         src/path.c
         src/args.c
         src/cmd.c
+        src/web/registry.c
     PUBLIC
     FILE_SET HEADERS
     BASE_DIRS
@@ -39,6 +40,7 @@ target_sources(${name}
         include/stz2/test.h
         include/stz2/args.h
         include/stz2/cmd.h
+        include/stz2/web/registry.h
 )
 
 target_include_directories(${name}

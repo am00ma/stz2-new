@@ -199,5 +199,27 @@ int main(int argc, char* argv[])
         EXPECT_EQ_NULL(strmap_lookup(&m, _("a")));
     }
 
+    TEST_CASE("StrSet")
+    {
+        EXPECT_EQ_LONG(sizeof(StrSet), 24L);
+
+        buf_stack(b, 1024);
+        StrSet m = strset_new(&b, 4);
+
+        RANGE(i, (1 << m.exp))
+        {
+            Str key = str_fmt(&b, "key-%ld", i);
+            EXPECT_TRUE(strset_insert(&m, key) >= 0);
+        }
+        EXPECT_FALSE(strset_insert(&m, _("a")) >= 0);
+
+        RANGE(i, (1 << m.exp))
+        {
+            Str key = str_fmt(&b, "key-%ld", i);
+            EXPECT_TRUE(strset_lookup(&m, key) >= 0);
+        }
+        EXPECT_FALSE(strset_lookup(&m, _("a")) >= 0);
+    }
+
     return TEST_RESULTS();
 }
