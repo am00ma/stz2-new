@@ -3,7 +3,7 @@
 #include "stz2/types.h"
 
 // clang-format off
-// --------------- Buffer ---------------
+// --------------- JsonBuffer ---------------
 
 typedef struct
 {
@@ -12,13 +12,13 @@ typedef struct
     isize pos;
     int   err;
 
-} Buffer;
+} JsonBuffer;
 
 #define BufAt(p, len_) (p->buf[p->pos + (len_)])
 
-#define BufFromStr(s)      (Buffer){.buf = s.buf, .len = s.len}
-#define BufFromBuffer(b)   (Buffer){.buf = &b->buf[b->pos], .len = b->len - b->pos}
-#define BufFromStack(b, n) char buf__##b[(n)] = {}; Buffer b = {.buf = buf__##b, .len = (n)};
+#define BufFromStr(s)      (JsonBuffer){.buf = s.buf, .len = s.len}
+#define BufFromBuffer(b)   (JsonBuffer){.buf = &b->buf[b->pos], .len = b->len - b->pos}
+#define BufFromStack(b, n) char buf__##b[(n)] = {}; JsonBuffer b = {.buf = buf__##b, .len = (n)};
 
 #define BufToStr(p, len_) (Str){.buf = &p->buf[p->pos - (len_)], .len = (len_)}
 
