@@ -6,48 +6,60 @@ WebRegistry web_registry_new(isize mem_cap, isize exp)
     return (WebRegistry){
         .paths  = strset_new(&mem, exp),
         .files  = make(&mem, WebFile*, (1 << exp), ALLOC_ZERO),
-        .oldest = -1,
-        .newest = -1,
+        .oldest = NULL,
+        .newest = NULL,
         .mem    = mem,
     };
 }
 void web_registry_free(WebRegistry* w) { buf_free(&w->mem); }
 
-int web_registry_path_cache(WebRegistry* w, Str0 path)
-{
-    // Check if it already exists
-    isize idx = strset_lookup(&w->paths, Str_(path));
-    if (idx >= 0) { return -1; } // Can overwrite if needed
-
-    // Allocate new data
-    WebFile* data;
-    data  = make(&w->mem, WebFile);
-    *data = (WebFile){.path = path, .size = 0};
-
-    // --  'Critical section'
-    idx           = strset_insert(&w->paths, Str_(path)); // insert key to get index
-    w->files[idx] = data;                                 // set file
-    // -- done
-
-    return 0;
-}
-
 int web_registry_path_lookup(WebRegistry* w, Str0 path, WebFile** data)
 {
+    // Return if already available
     isize idx = strset_lookup(&w->paths, Str_(path));
-    if (idx < 0)
+    if (idx >= 0)
     {
-        *data = NULL;
-        return -1;
+        *data = w->files[idx];
+        return 0;
     }
-    *data = w->files[idx];
+
+    // Allocate new data
+    WebFile* d;
+    d = make(&w->mem, WebFile);
+
+    // --  'Critical section'
+    idx = strset_insert(&w->paths, Str_(path)); // insert key to get index
+    *d  = (WebFile){
+        .path = path,
+        .idx  = idx,
+        .next = NULL,
+        .prev = w->newest,
+        .size = 0,
+    };
+    w->files[idx] = d;                                        // set file
+    if (!w->oldest) w->oldest = w->files[idx];                // if first file
+    if (w->newest) { w->newest->prev->next = w->files[idx]; } // link newest if exists
+    w->newest = w->files[idx];                                // set/replace newest
+    // -- done
+
+    *data = d;
+
     return 0;
 }
 
-int web_registry_path_delete(WebRegistry* w, Str0 path)
+int web_registry_path_delete(WebRegistry* w)
 {
-    isize idx = strset_lookup(&w->paths, Str_(path));
-    if (idx < 0) { return -1; }
-    w->paths.buf[idx] = StrNull;
+    if (!w->oldest) return -1;
+
+    // --  'Critical section'
+    WebFile* f = w->oldest;                   // get data
+    Assert((!f->prev), "");                   // (should be null, as we are oldest)
+    if (f->next) f->next->prev = NULL;        // remove oldest from next
+    if (w->newest == f) { w->newest = NULL; } // update newest (should be null if only file)
+    w->oldest            = f->next;           // update oldest (note comparison of pointers)
+    w->files[f->idx]     = NULL;              // delete it
+    w->paths.buf[f->idx] = StrNull;           // delete key
+    // -- done
+
     return 0;
 }

@@ -13,9 +13,6 @@ int main(int argc, char* argv[])
 
         WebRegistry w = web_registry_new(MB_, exp);
 
-        err = web_registry_path_cache(&w, _0("a"));
-        EXPECT_EQ_INT(err, 0);
-
         WebFile* data;
 
         err = web_registry_path_lookup(&w, _0("a"), &data);
@@ -23,14 +20,19 @@ int main(int argc, char* argv[])
         EXPECT_NEQ_NULL(data);
         EXPECT_EQ_STR(Str_(data->path), _("a"));
 
-        err = web_registry_path_delete(&w, _0("a"));
+        err = web_registry_path_delete(&w);
         EXPECT_EQ_INT(err, 0);
 
+        // Just puts it back
         err = web_registry_path_lookup(&w, _0("a"), &data);
-        EXPECT_EQ_INT(err, -1);
-        EXPECT_EQ_NULL(data);
+        EXPECT_EQ_INT(err, 0);
+        EXPECT_NEQ_NULL(data);
+        EXPECT_EQ_STR(Str_(data->path), _("a"));
 
-        err = web_registry_path_delete(&w, _0("a"));
+        err = web_registry_path_delete(&w);
+        EXPECT_EQ_INT(err, 0);
+
+        err = web_registry_path_delete(&w);
         EXPECT_EQ_INT(err, -1);
 
         web_registry_free(&w);

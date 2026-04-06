@@ -8,6 +8,7 @@ typedef struct WebFile
 {
     Str0 path;
 
+    isize    idx;
     WebFile* prev;
     WebFile* next;
 
@@ -27,8 +28,8 @@ typedef struct
     StrSet paths; // Indexes into files
 
     WebFile** files;
-    isize     oldest;
-    isize     newest;
+    WebFile*  oldest;
+    WebFile*  newest;
 
     Buf mem; // We want file buffers to be in scope when using WebRegistry
 } WebRegistry;
@@ -36,6 +37,6 @@ typedef struct
 WebRegistry web_registry_new(isize mem_cap, isize exp);
 void        web_registry_free(WebRegistry* w);
 
-int web_registry_path_cache(WebRegistry* w, Str0 path);
+// TODO: Clean up API as neither path should return any errors
 int web_registry_path_lookup(WebRegistry* w, Str0 path, WebFile** data);
-int web_registry_path_delete(WebRegistry* w, Str0 path);
+int web_registry_path_delete(WebRegistry* w);
