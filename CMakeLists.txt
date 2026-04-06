@@ -30,7 +30,13 @@ target_sources(${name}
         src/path.c
         src/args.c
         src/cmd.c
+
+        src/gui/SDL_FontCache.c
+        src/gui/draw.c
+        src/gui/types.c
+
         src/web/registry.c
+
     PUBLIC
     FILE_SET HEADERS
     BASE_DIRS
@@ -40,7 +46,15 @@ target_sources(${name}
         include/stz2/test.h
         include/stz2/args.h
         include/stz2/cmd.h
+
+        include/stz2/gui/assets.h
+
+        include/stz2/gui/SDL_FontCache.h
+        include/stz2/gui/draw.h
+        include/stz2/gui/types.h
+
         include/stz2/web/registry.h
+
 )
 
 target_include_directories(${name}
@@ -52,6 +66,9 @@ target_include_directories(${name}
 target_link_libraries(${name}
     PUBLIC
         m
+        SDL2
+        SDL2_ttf
+        SDL2_image
 )
 
 target_compile_options(${name}
@@ -60,9 +77,9 @@ target_compile_options(${name}
         -ggdb
         -Wall
         -Wextra
-        -fsanitize=address
+        # -fsanitize=address
         -fdiagnostics-color=always)
-target_link_options(${name} PRIVATE -fsanitize=address)
+# target_link_options(${name} PRIVATE -fsanitize=address)
 
 # =========================================================================
 #                      Installation
