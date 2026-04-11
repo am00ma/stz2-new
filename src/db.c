@@ -21,7 +21,11 @@ int db_stmt_exec(DbStmt* s, void* data)
     isize count = 0;
     while ((sqlite3_step(s->stmt) != SQLITE_DONE) && (!err))
     {
-        if (s->step) { err = s->step(s, count, data); } // Allow to break on error
+        if (s->step)
+        {
+            err = s->step(s, count, data);
+            if (err) break;
+        } // Allow to break on error
         count++;
     }
 
@@ -55,6 +59,8 @@ int db_stmt_start_strs(DbStmt* s, isize, void* data)
 
 int db_stmt_step_strs(DbStmt* s, isize idx, void* data)
 {
+    if (idx >= s->limit) return -1;
+
     Strs* strs     = data;
     char* str      = (char*)sqlite3_column_text(s->stmt, s->col_idx);
     strs->buf[idx] = str_copy(s->mem, (Str){.buf = str, .len = strlen(str)}, false);
@@ -65,6 +71,48 @@ int db_stmt_finish_strs(DbStmt*, isize idx, void* data)
 {
     Strs* strs = data;
     strs->len  = idx;
+    return 0;
+}
+
+// --------------- Get rows as list of strings ---------------
+
+int db_stmt_start_strsarr(DbStmt* s, isize, void* data)
+{
+    StrsArr* rows = data;
+    *rows         = (StrsArr){
+        .buf = make(s->mem, Strs, s->limit, ALLOC_NOZERO),
+        .len = s->limit,
+    };
+    return 0;
+}
+
+int db_stmt_step_strsarr(DbStmt* s, isize idx, void* data)
+{
+    if (idx >= s->limit) return -1;
+
+    StrsArr* rows = data;
+
+    Strs row = (Strs){
+        .buf = make(s->mem, Str, s->num_cols, ALLOC_ZERO),
+        .len = s->num_cols,
+    };
+
+    RANGE(i, s->num_cols)
+    {
+        char* str = (char*)sqlite3_column_text(s->stmt, i);
+        if (!str) str = "";
+        row.buf[i] = str_copy(s->mem, (Str){.buf = str, .len = strlen(str)}, false);
+    }
+
+    rows->buf[idx] = row;
+
+    return 0;
+}
+
+int db_stmt_finish_strsarr(DbStmt*, isize idx, void* data)
+{
+    StrsArr* rows = data;
+    rows->len     = idx;
     return 0;
 }
 
@@ -115,4 +163,33 @@ Strs db_list_columns(Buf* a, Str0 path, Str table, isize limit)
     if (err) {} // TODO:
 
     return columns;
+}
+
+StrsArr db_list_rows(Buf* a, Str0 path, Str table, isize limit)
+{
+    int err = 0;
+
+    Strs columns = db_list_columns(a, path, table, limit);
+    if (!columns.len) return (StrsArr){};
+
+    Str0 sql = str0_fmt(a, "SELECT * FROM '%.*s'", _s(table));
+    Assert(IsNullTerm(sql), "Unexepectedly not null terminated: %.*s", _s(sql));
+
+    StrsArr rows   = {};
+    DbStmt  s_rows = {
+        .path     = path,
+        .sql      = sql,
+        .start    = db_stmt_start_strsarr,
+        .step     = db_stmt_step_strsarr,
+        .finish   = db_stmt_finish_strsarr,
+        .mem      = a,
+        .limit    = limit,
+        .num_cols = columns.len,
+        .col_idx  = 0,
+    };
+
+    err = db_stmt_exec(&s_rows, &rows);
+    if (err) return (StrsArr){}; // TODO:
+
+    return rows;
 }

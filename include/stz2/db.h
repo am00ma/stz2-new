@@ -50,9 +50,10 @@ typedef struct DbStmt
     db_stmt_callback_fn step;
     db_stmt_callback_fn finish;
 
-    Buf*  mem;     // Memory to keep in scope after statement
-    isize limit;   // Often needed, so just stick it in here
-    isize col_idx; // As above
+    Buf*  mem;      // Memory to keep in scope after statement
+    isize limit;    // Often needed, so just stick it in here
+    isize col_idx;  // As above
+    isize num_cols; // As above
 
 } DbStmt;
 
@@ -65,7 +66,15 @@ Strs db_list_tables(Buf* a, Str0 path, isize limit);
 // Table level
 Strs db_list_columns(Buf* a, Str0 path, Str table, isize limit);
 
+// Return all columns as array of strings
+DECLARE_ARRAY(StrsArr, Strs);
+StrsArr db_list_rows(Buf* a, Str0 path, Str table, isize limit);
+
 // Various generic helpers
 int db_stmt_start_strs(DbStmt* s, isize, void* data);
 int db_stmt_step_strs(DbStmt* s, isize, void* data);
 int db_stmt_finish_strs(DbStmt* s, isize, void* data);
+
+int db_stmt_start_strsarr(DbStmt* s, isize, void* data);
+int db_stmt_step_strsarr(DbStmt* s, isize, void* data);
+int db_stmt_finish_strsarr(DbStmt* s, isize, void* data);
