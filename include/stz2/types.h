@@ -4,7 +4,7 @@
  *  Includes
  * ------------------------------------------------------------------------- */
 // For strptime
-#define _XOPEN_SOURCE 700
+#define _DEFAULT_SOURCE
 
 #include <stdalign.h> // alignof
 #include <stdarg.h>   // va_list, va_start, va_end

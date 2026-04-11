@@ -32,6 +32,7 @@ target_sources(${name}
         src/cmd.c
 
         src/rt/ring.c
+        src/rt/atomic.c
 
         src/gui/SDL_FontCache.c
         src/gui/draw.c
@@ -50,6 +51,7 @@ target_sources(${name}
         include/stz2/cmd.h
 
         include/stz2/rt/ring.h
+        include/stz2/rt/atomic.h
 
         include/stz2/gui/assets.h
 
