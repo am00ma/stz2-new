@@ -81,6 +81,22 @@ typedef struct timespec TimeNsec;
 #define RANGE3(i, a, b)    for (isize i = (a); i < (b); i++)
 #define RANGE4(i, a, b, c) for (isize i = (a); i < (b); i += (c))
 
+// Compared to RANGE, this is much more convoluted, due to not being able to define 2 variables in the initial for statement.
+// Defining outside will violate scope assumptions
+#define FOREACH(...)                 FOREACHx(__VA_ARGS__, FOREACH4, FOREACH3, FOREACH2, FOREACH1)(__VA_ARGS__)
+#define FOREACHx(a, b, c, d, e, ...) e
+
+#define FOREACH4(i, x, el, arr)                                                                                        \
+    for (                                                                                                              \
+        struct {                                                                                                       \
+            isize                 i;                                                                                   \
+            __typeof__((arr).buf) x;                                                                                   \
+        } el = {};                                                                                                     \
+        (el.x = el.i < (arr).len ? &(arr).buf[el.i] : 0), el.i < (arr).len; el.i++)
+#define FOREACH3(i, el, arr) FOREACH4(i, x, el, arr)
+#define FOREACH2(i, arr)     FOREACH4(i, x, el, arr)
+#define FOREACH1(arr)        FOREACH4(i, x, el, arr)
+
 /* ---------------------------------------------------------------------------
  *  Array basics
  * ------------------------------------------------------------------------- */
@@ -553,7 +569,7 @@ SI Str str_fmt(Buf* b, char const* fmt, ...)
     return s;
 }
 
-u64 str_hash64(Str s)
+SI u64 str_hash64(Str s)
 {
     u64 h = FNV_64_OFFSET_BASIS;
     RANGE(i, s.len)
