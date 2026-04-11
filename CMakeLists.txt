@@ -30,6 +30,7 @@ target_sources(${name}
         src/path.c
         src/args.c
         src/cmd.c
+        src/db.c
 
         src/rt/ring.c
         src/rt/atomic.c
@@ -49,6 +50,7 @@ target_sources(${name}
         include/stz2/test.h
         include/stz2/args.h
         include/stz2/cmd.h
+        include/stz2/db.h
 
         include/stz2/rt/ring.h
         include/stz2/rt/atomic.h
@@ -72,6 +74,7 @@ target_include_directories(${name}
 target_link_libraries(${name}
     PUBLIC
         m
+        sqlite3
         SDL2
         SDL2_ttf
         SDL2_image

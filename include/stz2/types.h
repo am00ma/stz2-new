@@ -298,6 +298,9 @@ SI Str str_copy(Buf* b, Str s, bool null_terminated);
 SI Str str_fmtn(Buf* b, isize len, const char* fmt, ...) __attribute__((format(printf, 3, 4)));
 SI Str str_fmt(Buf* b, const char* fmt, ...) __attribute__((format(printf, 2, 3)));
 
+SI Str0 str0_fmtn(Buf* b, isize len, const char* fmt, ...) __attribute__((format(printf, 3, 4)));
+SI Str0 str0_fmt(Buf* b, const char* fmt, ...) __attribute__((format(printf, 2, 3)));
+
 // 'Safe' substrings and comparisons
 SI Str   str_sub(Str s1, isize start, isize end); // Inclusive when using negative indices
 SI bool  str_startswith(Str s1, Str prefix);
@@ -578,6 +581,41 @@ SI u64 str_hash64(Str s)
         h *= FNV_64_PRIME;
     }
     return h;
+}
+
+// --------------- Str0 ---------------
+
+SI Str0 str0_fmtn(Buf* b, isize len, char const* fmt, ...)
+{
+    Str0 s = {.buf = make(b, char, len, ALLOC_NOZERO), .len = 0};
+
+    va_list arg;
+    va_start(arg, fmt);
+    s.len = vsnprintf(s.buf, len, fmt, arg);
+    va_end(arg);
+
+    b->len -= (len - s.len);
+
+    b->buf[b->len] = '\0';
+    b->len++;
+    return s;
+}
+
+SI Str0 str0_fmt(Buf* b, char const* fmt, ...)
+{
+    isize len = buf_avail(b, sizeof(char));
+    Str0  s   = {.buf = make(b, char, len, ALLOC_NOZERO), .len = 0};
+
+    va_list arg;
+    va_start(arg, fmt);
+    s.len = vsnprintf(s.buf, len, fmt, arg);
+    va_end(arg);
+
+    b->len -= (len - s.len);
+
+    b->buf[b->len] = '\0';
+    b->len++;
+    return s;
 }
 
 /* ---------------------------------------------------------------------------
