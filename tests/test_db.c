@@ -35,8 +35,8 @@ int main(int argc, char* argv[])
             Strs    cols  = db_list_columns(&a, path, table, 32);
             StrsArr rows  = db_list_rows(&a, path, table, 32);
 
-            PrintLn(cols);
-            RANGE(i, rows.len) { PrintLn(rows.buf[i]); }
+            Str out = print_table(&a, cols, rows, 10, _(" | "));
+            PrintVar(out);
         }
 
         buf_free(&b);

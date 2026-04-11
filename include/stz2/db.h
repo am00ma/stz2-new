@@ -67,7 +67,6 @@ Strs db_list_tables(Buf* a, Str0 path, isize limit);
 Strs db_list_columns(Buf* a, Str0 path, Str table, isize limit);
 
 // Return all columns as array of strings
-DECLARE_ARRAY(StrsArr, Strs);
 StrsArr db_list_rows(Buf* a, Str0 path, Str table, isize limit);
 
 // Various generic helpers

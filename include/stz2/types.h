@@ -122,6 +122,14 @@ typedef struct timespec TimeNsec;
 #define vec_first(vec) (vec).buf[0]
 #define vec_last(vec)  (vec).buf[(vec).len - 1]
 
+// Common arrays
+DECLARE_ARRAY(u32s, u32);
+DECLARE_ARRAY(u64s, u64);
+DECLARE_ARRAY(i32s, i32);
+DECLARE_ARRAY(i64s, i64);
+DECLARE_ARRAY(f32s, f32);
+DECLARE_ARRAY(f64s, f64);
+
 /* ---------------------------------------------------------------------------
  *  Printing
  * ------------------------------------------------------------------------- */
@@ -879,6 +887,27 @@ int strset_insert(StrSet* m, Str key)
 X_TABLE_PRIMITIVES(x, type, fmt, args)
 #undef X
 
+#define DECLARE_PRINT_ARRAY(type, fmt)                                                                                 \
+    SI void printvar__##type(type* x)                                                                                  \
+    {                                                                                                                  \
+        if (!x->len)                                                                                                   \
+        {                                                                                                              \
+            p_inline("[]");                                                                                            \
+            return;                                                                                                    \
+        }                                                                                                              \
+                                                                                                                       \
+        p_inline("[");                                                                                                 \
+        RANGE(i, x->len - 1) { p_inline(fmt ", ", x->buf[i]); }                                                        \
+        p_inline(fmt "]", x->buf[x->len - 1]);                                                                         \
+    }
+
+DECLARE_PRINT_ARRAY(u32s, "%u");
+DECLARE_PRINT_ARRAY(u64s, "%lu");
+DECLARE_PRINT_ARRAY(i32s, "%d");
+DECLARE_PRINT_ARRAY(i64s, "%ld");
+DECLARE_PRINT_ARRAY(f32s, "%f");
+DECLARE_PRINT_ARRAY(f64s, "%f");
+
 SI void printvar__Strs(Strs* x)
 {
     if (!x->len)
@@ -931,6 +960,12 @@ SI void printvar__StrMap(StrMap* x)
         CChars: printvar__CChars,                                                                                      \
         Str: printvar__Str,                                                                                            \
         Str0: printvar__Str0,                                                                                          \
+        u32s: printvar__u32s,                                                                                          \
+        u64s: printvar__u64s,                                                                                          \
+        i32s: printvar__i32s,                                                                                          \
+        i64s: printvar__i64s,                                                                                          \
+        f32s: printvar__f32s,                                                                                          \
+        f64s: printvar__f64s,                                                                                          \
         Strs: printvar__Strs,                                                                                          \
         Str0s: printvar__Str0s,                                                                                        \
         StrMap: printvar__StrMap)(&x)
@@ -952,3 +987,89 @@ SI void printvar__StrMap(StrMap* x)
         X_TABLE_##name(idx, type, ref, field, key);                                                                    \
         p_inline("}");                                                                                                 \
     }
+
+// --------------- Printing tables ---------------
+DECLARE_ARRAY(StrsArr, Strs);
+
+SI void print_max_width_Str(Buf* b, Str x, isize max_width)
+{
+    if (x.len <= max_width)
+    {
+        buf_stack(temp, 32);
+        Str0 fmt = str0_fmt(&temp, "%%-%ld.*s", max_width);
+        str_fmt(b, fmt.buf, _s(x));
+        return;
+    }
+
+    buf_stack(temp, 32);
+    Str0 fmt = str0_fmt(&temp, "%%-%ld.*s ..", max_width - 3);
+    str_fmt(b, fmt.buf, (int)(max_width - 3), x.buf);
+}
+
+#define DECLARE_PRINT_MAX_WIDTH_NUM(type, format)                                                                      \
+    SI void print_max_width_##type(Buf* b, type x, isize max_width)                                                    \
+    {                                                                                                                  \
+        buf_stack(temp, 32);                                                                                           \
+        Str0 fmt = str0_fmt(&temp, "%%-%ld" format, max_width);                                                        \
+        str_fmt(b, fmt.buf, x);                                                                                        \
+    }
+
+DECLARE_PRINT_MAX_WIDTH_NUM(u32, "u");
+DECLARE_PRINT_MAX_WIDTH_NUM(u64, "lu");
+DECLARE_PRINT_MAX_WIDTH_NUM(i32, "d");
+DECLARE_PRINT_MAX_WIDTH_NUM(i64, "ld");
+DECLARE_PRINT_MAX_WIDTH_NUM(f32, "f");
+DECLARE_PRINT_MAX_WIDTH_NUM(f64, "f");
+
+SI Str print_table(Buf* b, Strs cols, StrsArr rows, isize max_col_width, Str sep)
+{
+    // Init measurements for headers
+    i32s len_header = {
+        .buf = make(b, i32, cols.len, ALLOC_ZERO),
+        .len = cols.len,
+    };
+    RANGE(i, cols.len) { len_header.buf[i] = cols.buf[i].len; }
+
+    // Init measurements for rows
+    i32s len_rows = {
+        .buf = make(b, i32, cols.len, ALLOC_ZERO),
+        .len = cols.len,
+    };
+
+    // Set minimum as header len
+    RANGE(j, cols.len) { len_rows.buf[j] = len_header.buf[j]; }
+
+    // Get max over rows
+    RANGE(i, rows.len)
+    {
+        RANGE(j, cols.len) { len_rows.buf[j] = maximum(len_rows.buf[j], rows.buf[i].buf[j].len); }
+    }
+
+    // Clip by column width
+    RANGE(j, cols.len) { len_rows.buf[j] = minimum(len_rows.buf[j], max_col_width); }
+
+    // Print the headers
+    Buf out = buf_new2(b, buf_avail(b, sizeof(char)), ALLOC_NOZERO);
+    RANGE(i, cols.len)
+    {
+        print_max_width_Str(&out, cols.buf[i], len_rows.buf[i]);
+        if (i < cols.len - 1) str_fmt(&out, "%.*s", _s(sep));
+    }
+    str_fmt(&out, "\n");
+
+    // Print the rows
+    RANGE(j, rows.len)
+    {
+        RANGE(i, cols.len)
+        {
+            print_max_width_Str(&out, rows.buf[j].buf[i], len_rows.buf[i]);
+            if (i < cols.len - 1) str_fmt(&out, "%.*s", _s(sep));
+        }
+        str_fmt(&out, "\n");
+    }
+
+    // Reclaim
+    b->len -= (out.cap - out.len);
+
+    return Str_(out);
+}
