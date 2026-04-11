@@ -1,6 +1,6 @@
 #pragma once
 
-#include "stz2/types.h"
+#include "stz2/table.h" // StrsArr
 
 #include <sqlite3.h>
 

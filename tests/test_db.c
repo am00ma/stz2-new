@@ -1,4 +1,5 @@
 #include "stz2/db.h"
+#include "stz2/table.h"
 
 #include "stz2/test.h"
 
@@ -35,7 +36,7 @@ int main(int argc, char* argv[])
             Strs    cols  = db_list_columns(&a, path, table, 32);
             StrsArr rows  = db_list_rows(&a, path, table, 32);
 
-            Str out = print_table(&a, cols, rows, 10, _(" | "));
+            Str out = table_print(&a, cols, rows, 10, _(" | "));
             PrintVar(out);
         }
 
