@@ -35,6 +35,8 @@ target_sources(${name}
         src/rt/ring.c
         src/rt/atomic.c
 
+        src/md/toc.c
+
         src/gui/SDL_FontCache.c
         src/gui/draw.c
         src/gui/types.c
@@ -55,6 +57,8 @@ target_sources(${name}
         include/stz2/rt/ring.h
         include/stz2/rt/atomic.h
 
+        include/stz2/md/toc.h
+
         include/stz2/gui/assets.h
 
         include/stz2/gui/SDL_FontCache.h
@@ -74,6 +78,7 @@ target_include_directories(${name}
 target_link_libraries(${name}
     PUBLIC
         m
+        md4c
         sqlite3
         SDL2
         SDL2_ttf
