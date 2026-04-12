@@ -52,13 +52,13 @@ void window_destroy(Window* w)
 
 void window_dump(Window* w) { p_info("  w, h: %d, %d", w->bounds.w, w->bounds.h); }
 
-void window_update(Window* w, SDL_Event event, void*)
+void window_update(Window* w, SDL_Event* event, void*)
 {
-    switch (event.type)
+    switch (event->type)
     {
     case SDL_QUIT: w->quit = true; break;
     case SDL_KEYDOWN:
-        switch (event.key.keysym.sym)
+        switch (event->key.keysym.sym)
         {
         case SDLK_ESCAPE: w->quit = true; break;
         }

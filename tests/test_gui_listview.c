@@ -4,7 +4,7 @@
 
 int main(int argc, char* argv[])
 {
-    TEST_SUITE("gui/window.h");
+    TEST_SUITE("gui/widgets/listview.h");
 
     TEST_CASE("Size") { EXPECT_EQ_LONG(sizeof(Window), 96L); }
 
