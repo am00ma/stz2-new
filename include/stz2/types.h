@@ -116,8 +116,18 @@ typedef struct timespec TimeNsec;
         isize cap;                                                                                                     \
     } name;
 
+#define arr_new(name, buffer, type, n, flags)                                                                          \
+    (name) { .buf = make(buffer, type, (n), flags), .len = (n) }
+
+#define arr_shrink(arr, buffer, newlen)                                                                                \
+    Assert(buf_ontop(buffer, (arr).buf, ((arr).len) * sizeof(__typeof__(*(arr).buf))), "");                            \
+    (buffer)->len -= ((arr).len - (newlen)) * sizeof(__typeof__(*(arr).buf));                                          \
+    (arr).len      = (newlen);
+
 #define arr_first(arr) (arr).buf[0]
 #define arr_last(arr)  (arr).buf[(arr).len - 1]
+#define arr_sub(arr, i, j)                                                                                             \
+    (__typeof__(arr)) { .buf = &arr.buf[(i)], .len = (j - i) }
 
 #define vec_first(vec) (vec).buf[0]
 #define vec_last(vec)  (vec).buf[(vec).len - 1]
@@ -255,7 +265,7 @@ SI void buf_free(Buf* b);
 
 // Measurements
 SI isize buf_avail(Buf* b, usize objsize);
-SI bool  buf_ontop(Buf* b, char* buf, isize len);
+SI bool  buf_ontop(Buf* b, void* buf, isize len);
 
 /* ---------------------------------------------------------------------------
  *  Strings
@@ -476,7 +486,7 @@ SI void buf_free(Buf* b)
 
 // Measurements
 SI isize buf_avail(Buf* b, usize objsize) { return (b->cap - b->len) / objsize; }
-SI bool  buf_ontop(Buf* b, char* buf, isize len) { return (b->len - len) == (buf - b->buf); }
+SI bool  buf_ontop(Buf* b, void* buf, isize len) { return (b->len - len) == ((char*)buf - b->buf); }
 
 // --------------- Str ---------------
 

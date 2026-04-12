@@ -111,6 +111,30 @@ SI Str concat__double(Parser* b, f64 x)
     return BufToStr((&bb), bb.pos);                           // Return printed part, we cannot check if correct
 }
 
+// --------------- Print ---------------
+
+Str print__char(Parser* b, char* x) { return concat__char(b, *x); }
+Str print__Str(Parser* b, Str* x) { return concat__quoted_string(b, *x); }
+
+Str print__bool(Parser* b, bool* x) { return concat__bool(b, *x); }
+Str print__u32(Parser* b, u32* x) { return concat__unsigned_int(b, *x); }
+Str print__u64(Parser* b, u64* x) { return concat__unsigned_int(b, *x); }
+Str print__i32(Parser* b, i32* x) { return concat__signed_int(b, *x); }
+Str print__i64(Parser* b, i64* x) { return concat__signed_int(b, *x); }
+Str print__f32(Parser* b, f32* x) { return concat__double(b, *x); }
+Str print__f64(Parser* b, f64* x) { return concat__double(b, *x); }
+
+#define print__array(type, b, arr)                                                                                     \
+    {                                                                                                                  \
+        concat__char(b, '[');                                                                                          \
+        for (isize i = 0; i < (arr).len; i++)                                                                          \
+        {                                                                                                              \
+            print__##type(b, (arr).buf[i]);                                                                            \
+            if (i != (arr).len - 1) { concat__string(b, _(", ")); }                                                    \
+        }                                                                                                              \
+        concat__char(b, ']');                                                                                          \
+    }
+
 // --------------- consume ---------------
 
 SI Str consume__whitespace(Parser* b)
@@ -275,30 +299,6 @@ SI Str consume__number(Parser* b)
     b->pos += bb.pos;                                 // Update buffer on success
     return BufToStr((&bb), bb.pos);                   // Return from local buffer
 }
-
-// --------------- Print ---------------
-
-Str print__char(Parser* b, char* x) { return concat__char(b, *x); }
-Str print__Str(Parser* b, Str* x) { return concat__quoted_string(b, *x); }
-
-Str print__bool(Parser* b, bool* x) { return concat__bool(b, *x); }
-Str print__u32(Parser* b, u32* x) { return concat__unsigned_int(b, *x); }
-Str print__u64(Parser* b, u64* x) { return concat__unsigned_int(b, *x); }
-Str print__i32(Parser* b, i32* x) { return concat__signed_int(b, *x); }
-Str print__i64(Parser* b, i64* x) { return concat__signed_int(b, *x); }
-Str print__f32(Parser* b, f32* x) { return concat__double(b, *x); }
-Str print__f64(Parser* b, f64* x) { return concat__double(b, *x); }
-
-#define print__array(type, b, arr)                                                                                     \
-    {                                                                                                                  \
-        concat__char(b, '[');                                                                                          \
-        for (isize i = 0; i < (arr).len; i++)                                                                          \
-        {                                                                                                              \
-            print__##type(b, (arr).buf[i]);                                                                            \
-            if (i != (arr).len - 1) { concat__string(b, _(", ")); }                                                    \
-        }                                                                                                              \
-        concat__char(b, ']');                                                                                          \
-    }
 
 // --------------- Parse ---------------
 
