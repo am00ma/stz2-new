@@ -1,6 +1,6 @@
 #include "stz2/web/server.h"
 
-static inline Str path_extension(Str filename)
+SI Str path_extension(Str filename)
 {
     char* dot = strrchr(filename.buf, '.');
     if (!dot || dot == filename.buf) return (Str){};
@@ -28,9 +28,8 @@ int request_info_parse(Buf* a, RequestInfo* info, Str src)
     info->ext      = path_extension(info->filename);
 
     // Parse headers
-    isize count = 0;
-    // TODO:
-    // info->headers = array_new(StrPairs, a, KeyVal, lines.len - 1, ALLOC_ZERO);
+    isize count   = 0;
+    info->headers = arr_new(KeyVals, a, KeyVal, lines.len - 1, ALLOC_ZERO);
     RANGE(i, 1, lines.len)
     {
         KeyVal kv = str_split_keyval(lines.buf[i], ':', STRS_TRIM_DEFAULT | STRS_TRIM_NEWLINES);
@@ -43,8 +42,7 @@ int request_info_parse(Buf* a, RequestInfo* info, Str src)
         info->headers.buf[count] = kv;
         count++;
     }
-    // TODO:
-    // array_shrink((&info->headers), (a), KeyVal, count);
+    arr_shrink(info->headers, a, count);
 
     return 0;
 }
