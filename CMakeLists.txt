@@ -50,9 +50,11 @@ target_sources(${name}
     FILES
         include/stz2/types.h
         include/stz2/test.h
+        include/stz2/parse.h
         include/stz2/args.h
         include/stz2/cmd.h
         include/stz2/db.h
+        include/stz2/table.h
 
         include/stz2/rt/ring.h
         include/stz2/rt/atomic.h

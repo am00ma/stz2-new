@@ -58,6 +58,7 @@ SI Str concat__char(Parser* b, char c)
 
 SI Str concat__string(Parser* b, Str s)
 {
+    if (!s.buf) return StrNull;
     isize len = minimum(b->len - b->pos, s.len);   // Print as much as possible
     memcpy(&BufAt(b, 0), s.buf, len);              //
     b->pos += len;                                 //
@@ -124,16 +125,28 @@ Str print__i64(Parser* b, i64* x) { return concat__signed_int(b, *x); }
 Str print__f32(Parser* b, f32* x) { return concat__double(b, *x); }
 Str print__f64(Parser* b, f64* x) { return concat__double(b, *x); }
 
-#define print__array(type, b, arr)                                                                                     \
+#define DECLARE_PRINT_ARRAY(arrtype, type)                                                                             \
+    Str print__##arrtype(Parser* b, arrtype* x)                                                                        \
     {                                                                                                                  \
-        concat__char(b, '[');                                                                                          \
-        for (isize i = 0; i < (arr).len; i++)                                                                          \
+        Parser bb = BufFromBuffer(b);                                                                                  \
+        concat__char((&bb), '[');                                                                                      \
+        for (isize i = 0; i < x->len; i++)                                                                             \
         {                                                                                                              \
-            print__##type(b, (arr).buf[i]);                                                                            \
-            if (i != (arr).len - 1) { concat__string(b, _(", ")); }                                                    \
+            print__##type((&bb), &x->buf[i]);                                                                          \
+            if (i != x->len - 1) { concat__string((&bb), _(", ")); }                                                   \
         }                                                                                                              \
-        concat__char(b, ']');                                                                                          \
+        concat__char((&bb), ']');                                                                                      \
+        b->pos += bb.pos;                                                                                              \
+        return BufToStr((&bb), bb.pos);                                                                                \
     }
+
+DECLARE_PRINT_ARRAY(Strs, Str);
+DECLARE_PRINT_ARRAY(u32s, u32);
+DECLARE_PRINT_ARRAY(u64s, u64);
+DECLARE_PRINT_ARRAY(i32s, i32);
+DECLARE_PRINT_ARRAY(i64s, i64);
+DECLARE_PRINT_ARRAY(f32s, f32);
+DECLARE_PRINT_ARRAY(f64s, f64);
 
 // --------------- consume ---------------
 
@@ -402,7 +415,24 @@ SI Str parse__f64(Parser* b, f64* x)
 
 // --------------- TODO: Array ---------------
 
-#define parse__array(type, b, arr)
+// How to allot memory for arrays? assume len is capacity?
+Str parse__Strs(Parser* b, Strs* x)
+{
+    Parser bb = BufFromBuffer(b);
+    consume__char((&bb), '[');
+    RANGE(i, x->len)
+    {
+        consume__whitespace((&bb));
+        parse__Str((&bb), &x->buf[i]);
+        consume__whitespace((&bb));
+
+        // TODO: This is straight out wrong in case of unknown number
+        if (i != x->len - 1) { consume__char((&bb), ','); }
+    }
+    consume__char((&bb), ']');
+    b->pos += bb.pos;
+    return BufToStr((&bb), bb.pos);
+};
 
 /* ---------------------------------------------------------------------------
  * X-Macros

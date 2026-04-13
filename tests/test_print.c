@@ -122,5 +122,23 @@ int main(int argc, char* argv[])
         EXPECT_EQ_STR(dst, expected);
     }
 
+    TEST_CASE("Arrays")
+    {
+        buf_stack(b, 128);
+        BufFromStack(p, 128);
+
+        Strs x1       = arr_new(Strs, &b, Str, 3, ALLOC_ZERO);
+        x1.buf[0]     = _("hello");
+        x1.buf[1]     = _("hi");
+        Str dst1      = print__Strs(&p, &x1);
+        Str expected1 = _("[\"hello\", \"hi\", \"\"]");
+        EXPECT_EQ_STR(dst1, expected1);
+
+        i32s x2        = arr_new(i32s, &b, i32, 3, ALLOC_ZERO);
+        Str  dst2      = print__i32s(&p, &x2);
+        Str  expected2 = _("[0, 0, 0]");
+        EXPECT_EQ_STR(dst2, expected2);
+    }
+
     TEST_RESULTS();
 }

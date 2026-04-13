@@ -72,6 +72,8 @@ int main(int argc, char* argv[])
         EXPECT_EQ_STR(str_sub(s1, 0, -1), s1);
         EXPECT_TRUE(str_startswith(s1, _("hello")));
         EXPECT_TRUE(str_endswith(s1, _("you")));
+        EXPECT_TRUE(str_contains(s1, _("hi")));
+        EXPECT_EQ_LONG(str_find(s1, _("hi")), 6L);
     }
 
     TEST_CASE("Trim")

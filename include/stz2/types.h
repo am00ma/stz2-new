@@ -531,25 +531,16 @@ SI bool str_endswith(Str s1, Str suffix)
     return str_equal(str_sub(s1, s1.len - suffix.len, s1.len), suffix);
 }
 
-SI bool str_contains(Str s1, Str sub)
-{
-    if (!sub.len) return true; // Always contains NullStr
-    RANGE(i, s1.len)
-    {
-        if (!(s1.buf[i] == sub.buf[0])) continue;
-        return str_equal((Str){&s1.buf[i], s1.len - i}, sub);
-    }
-    return false;
-}
+SI bool str_contains(Str s1, Str sub) { return str_find(s1, sub) >= 0; }
 
 SI isize str_find(Str s1, Str sub)
 {
     if (!sub.len) return 0; // Always finds NullStr
+    if (sub.len > s1.len) return false;
     RANGE(i, s1.len)
     {
         if (!(s1.buf[i] == sub.buf[0])) continue;
-        if (str_equal((Str){&s1.buf[i], s1.len - i}, sub)) { return i; }
-        else return -1;
+        if (str_equal((Str){&s1.buf[i], sub.len}, sub)) { return i; }
     }
     return -1;
 }
@@ -897,7 +888,7 @@ int strset_insert(StrSet* m, Str key)
 X_TABLE_PRIMITIVES(x, type, fmt, args)
 #undef X
 
-#define DECLARE_PRINT_ARRAY(type, fmt)                                                                                 \
+#define DECLARE_PRINTVAR_ARRAY(type, fmt)                                                                              \
     SI void printvar__##type(type* x)                                                                                  \
     {                                                                                                                  \
         if (!x->len)                                                                                                   \
@@ -910,12 +901,12 @@ X_TABLE_PRIMITIVES(x, type, fmt, args)
         p_inline(fmt "]", x->buf[x->len - 1]);                                                                         \
     }
 
-DECLARE_PRINT_ARRAY(u32s, "%u");
-DECLARE_PRINT_ARRAY(u64s, "%lu");
-DECLARE_PRINT_ARRAY(i32s, "%d");
-DECLARE_PRINT_ARRAY(i64s, "%ld");
-DECLARE_PRINT_ARRAY(f32s, "%f");
-DECLARE_PRINT_ARRAY(f64s, "%f");
+DECLARE_PRINTVAR_ARRAY(u32s, "%u");
+DECLARE_PRINTVAR_ARRAY(u64s, "%lu");
+DECLARE_PRINTVAR_ARRAY(i32s, "%d");
+DECLARE_PRINTVAR_ARRAY(i64s, "%ld");
+DECLARE_PRINTVAR_ARRAY(f32s, "%f");
+DECLARE_PRINTVAR_ARRAY(f64s, "%f");
 
 SI void printvar__Strs(Strs* x)
 {
