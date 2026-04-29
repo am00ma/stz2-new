@@ -19,7 +19,7 @@ option(STZ_BUILD_TESTS "Build tests" ON)
 # =========================================================================
 set(name stz2)
 
-add_library(${name} STATIC)
+add_library(${name} SHARED)
 
 set_target_properties(${name} PROPERTIES LANGUAGES       C)
 set_target_properties(${name} PROPERTIES LINKER_LANGUAGE C)
@@ -50,11 +50,12 @@ target_sources(${name}
     FILES
         include/stz2/types.h
         include/stz2/test.h
-        include/stz2/parse.h
+        include/stz2/path.h
         include/stz2/args.h
         include/stz2/cmd.h
         include/stz2/db.h
         include/stz2/table.h
+        include/stz2/parse.h
 
         include/stz2/rt/ring.h
         include/stz2/rt/atomic.h
@@ -127,6 +128,20 @@ install(
         ${CMAKE_CURRENT_BINARY_DIR}/${name}ConfigVersion.cmake
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${name}
 )
+
+configure_file(cmake/${name}.pc.in ${name}.pc @ONLY)
+
+install(
+    FILES ${CMAKE_CURRENT_BINARY_DIR}/${name}.pc
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
+)
+
+# Otherwise system does not pick it up
+install(
+    FILES ${CMAKE_CURRENT_BINARY_DIR}/${name}.pc
+    DESTINATION /usr/lib/pkgconfig
+)
+
 
 # =========================================================================
 #                      tests

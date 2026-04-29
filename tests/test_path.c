@@ -60,7 +60,7 @@ int main(int argc, char* argv[])
         EXPECT_EQ_LONG(path_split(&b, _0("///a/b/"), -1).len, 2L);
     }
 
-    TEST_CASE("Read, Write, Delete")
+    TEST_CASE("Read, Write, Delete, Mkdir")
     {
         Buf b = buf_new(MB_);
 
@@ -87,6 +87,14 @@ int main(int argc, char* argv[])
 
         err = path_read_text(&b, temp, &dst);
         EXPECT_NEQ_INT(err, 0);
+
+        Str0 tempdir = _0("/tmp/tempdir");
+
+        err = path_mkdir(tempdir, 0755);
+        EXPECT_EQ_INT(err, 0);
+
+        err = path_delete(tempdir);
+        EXPECT_EQ_INT(err, 0);
 
         buf_free(&b);
     }

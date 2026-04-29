@@ -74,6 +74,19 @@ Str0 path_join(Buf* b, Str0 parent, Str0 path)
     return Str0_(p);
 }
 
+int path_mkdir(Str0 path, int mode)
+{
+    int err = 0;
+    // int mode = 0755;
+
+    if (path_exists(path)) return 0;
+
+    err = mkdir(path.buf, mode);
+    if (err) return err;
+
+    return 0;
+}
+
 int path_delete(Str0 path)
 {
     int err = 0;
