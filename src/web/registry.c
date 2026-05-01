@@ -56,9 +56,12 @@ int web_registry_path_delete(WebRegistry* w)
     Assert((!f->prev), "");                   // (should be null, as we are oldest)
     if (f->next) f->next->prev = NULL;        // remove oldest from next
     if (w->newest == f) { w->newest = NULL; } // update newest (should be null if only file)
-    w->oldest            = f->next;           // update oldest (note comparison of pointers)
-    w->files[f->idx]     = NULL;              // delete it
-    w->paths.buf[f->idx] = StrNull;           // delete key
+    w->oldest = f->next;                      // update oldest (note comparison of pointers)
+    // NOTE: f->idx was indexed at `lookup` otherwise would need strset_delete(Str key)
+    w->files[f->idx] = NULL; // delete it
+    // TODO: strset_delete_idx(isize idx) is needed to manage len
+    w->paths.buf[f->idx] = StrNull; // delete key
+    w->paths.len--;                 // decrement length
     // -- done
 
     return 0;
