@@ -36,10 +36,13 @@ int web_registry_path_lookup(WebRegistry* w, Str0 path, WebFile** data)
         .prev = w->newest,
         .size = 0,
     };
-    w->files[idx] = d;                                        // set file
-    if (!w->oldest) w->oldest = w->files[idx];                // if first file
-    if (w->newest) { w->newest->prev->next = w->files[idx]; } // link newest if exists
-    w->newest = w->files[idx];                                // set/replace newest
+    w->files[idx] = d;                         // set file
+    if (!w->oldest) w->oldest = w->files[idx]; // if first file
+    if (w->newest)
+    {
+        if (w->newest->prev) w->newest->prev->next = w->files[idx];
+    } // link newest if exists
+    w->newest = w->files[idx]; // set/replace newest
     // -- done
 
     *data = d;

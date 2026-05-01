@@ -42,8 +42,19 @@ int main(int argc, char* argv[])
         EXPECT_EQ_INT(err, 0);
         EXPECT_EQ_LONG(w.paths.len, 1L);
 
+        err = web_registry_path_lookup(&w, _0("b"), &data);
+        EXPECT_EQ_INT(err, 0);
+        EXPECT_EQ_LONG(w.paths.len, 2L);
+
+        // Delete from list of two elements
         err = web_registry_path_delete(&w);
         EXPECT_EQ_INT(err, 0);
+        EXPECT_EQ_LONG(w.paths.len, 1L);
+
+        // Delete from list of one element
+        err = web_registry_path_delete(&w);
+        EXPECT_EQ_INT(err, 0);
+        EXPECT_EQ_LONG(w.paths.len, 0L);
 
         // Delete from empty list
         err = web_registry_path_delete(&w);
