@@ -801,7 +801,6 @@ int strmap_insert(StrMap* m, Str key, Str val)
         else if (str_equal(key, m->buf[i].key)) // found filled slot, overwrite
         {
             m->buf[i].val = val;
-            m->len++;
             return i;
         }
     }
@@ -826,20 +825,23 @@ SI StrSet strset_new(Buf* b, isize exp)
     };
 }
 
-int strset_lookup(StrSet* m, Str key)
+SI int strset_lookup(StrSet* m, Str key)
 {
+    if (!m->len) { return -1; } // empty set
+
     u64 hash  = str_hash64(key);
     i32 count = 0;
     for (i32 i = hash;;)
     {
         i = strset_next(hash, m->exp, i);
+        // BUG: Deletion causes fail in lookup, as it will stop at gravestone
         if (m->buf[i].len == 0) { return -1; }            // found empty slot
         else if (str_equal(key, m->buf[i])) { return i; } // found filled slot
-        if ((count++) >= (m->len)) { return -1; }         // no slot found after full iteration
+        if ((count++) >= m->len) { return -1; }           // BUG: necessary? no slot found after full iteration
     }
 }
 
-int strset_insert(StrSet* m, Str key)
+SI int strset_insert(StrSet* m, Str key)
 {
     if ((m->len + 1) > (1 << m->exp)) { return -1; } // overflows capacity
 
@@ -855,10 +857,18 @@ int strset_insert(StrSet* m, Str key)
         }
         else if (str_equal(key, m->buf[i]))
         {
-            m->len++;
             return i; // found filled slot, overwrite
         }
     }
+}
+
+SI int strset_delete(StrSet* m, Str key)
+{
+    int idx = strset_lookup(m, key);
+    if (idx < 0) { return -1; } // not found
+    m->buf[idx] = StrNull;
+    m->len--;
+    return idx;
 }
 
 /* ---------------------------------------------------------------------------

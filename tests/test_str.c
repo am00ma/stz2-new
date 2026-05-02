@@ -205,22 +205,29 @@ int main(int argc, char* argv[])
     {
         EXPECT_EQ_LONG(sizeof(StrSet), 24L);
 
-        buf_stack(b, 1024);
-        StrSet m = strset_new(&b, 4);
+        Buf b = buf_new(MB_);
 
-        RANGE(i, (1 << m.exp))
-        {
-            Str key = str_fmt(&b, "key-%ld", i);
-            EXPECT_TRUE(strset_insert(&m, key) >= 0);
-        }
+        StrSet m    = strset_new(&b, 4);
+        Strs   keys = arr_new(Strs, &b, Str, (1 << m.exp), ALLOC_NOZERO);
+        RANGE(i, (1 << m.exp)) { keys.buf[i] = str_fmt(&b, "key-%ld", i); }
+
+        RANGE(i, (1 << m.exp)) { EXPECT_TRUE(strset_insert(&m, keys.buf[i]) >= 0); }
         EXPECT_FALSE(strset_insert(&m, _("a")) >= 0);
 
-        RANGE(i, (1 << m.exp))
-        {
-            Str key = str_fmt(&b, "key-%ld", i);
-            EXPECT_TRUE(strset_lookup(&m, key) >= 0);
-        }
+        RANGE(i, (1 << m.exp)) { EXPECT_TRUE(strset_lookup(&m, keys.buf[i]) >= 0); }
         EXPECT_FALSE(strset_lookup(&m, _("a")) >= 0);
+
+        RANGE(i, (1 << m.exp)) { EXPECT_TRUE(strset_lookup(&m, keys.buf[i]) >= 0); }
+        EXPECT_FALSE(strset_lookup(&m, _("a")) >= 0);
+
+        // BUG: Deletion causes fail in lookup
+        RANGE(i, (1 << m.exp)) { EXPECT_TRUE(strset_delete(&m, keys.buf[i]) >= 0); }
+        EXPECT_FALSE(strset_lookup(&m, _("a")) >= 0);
+
+        RANGE(i, (1 << m.exp)) { EXPECT_FALSE(strset_lookup(&m, keys.buf[i]) >= 0); }
+        EXPECT_FALSE(strset_lookup(&m, _("a")) >= 0);
+
+        buf_free(&b);
     }
 
     return TEST_RESULTS();
