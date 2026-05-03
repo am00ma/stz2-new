@@ -765,6 +765,7 @@ SI int strmap_next(u64 hash, int exp, int i)
 SI StrMap strmap_new(Buf* b, isize exp)
 {
     return (StrMap){
+        // ALLOC_ZERO needed to set .buf = 0 which marks empty slot
         .buf = make(b, KeyVal, (1 << exp), ALLOC_ZERO),
         .len = 0,
         .exp = exp,
@@ -778,7 +779,7 @@ Str* strmap_lookup(StrMap* m, Str key)
     for (i32 i = hash;;)
     {
         i = strmap_next(hash, m->exp, i);
-        if (m->buf[i].key.len == 0) { return NULL; }                       // found empty slot
+        if (!m->buf[i].key.buf) { return NULL; }                           // found empty slot
         else if (str_equal(key, m->buf[i].key)) { return &m->buf[i].val; } // found filled slot
         if ((count++) >= (m->len)) { return NULL; }                        // no slot found after full iteration
     }
@@ -791,7 +792,7 @@ int strmap_insert(StrMap* m, Str key, Str val)
     for (i32 i = hash;;)
     {
         i = strmap_next(hash, m->exp, i);
-        if (m->buf[i].key.len == 0) // found empty slot, insert
+        if (!m->buf[i].key.buf) // found empty slot, insert
         {
             m->buf[i].key = key;
             m->buf[i].val = val;
@@ -819,6 +820,7 @@ SI int strset_next(u64 hash, int exp, int i)
 SI StrSet strset_new(Buf* b, isize exp)
 {
     return (StrSet){
+        // ALLOC_ZERO needed to set .buf = 0 which marks empty slot
         .buf = make(b, Str, (1 << exp), ALLOC_ZERO),
         .len = 0,
         .exp = exp,
@@ -835,7 +837,7 @@ SI int strset_lookup(StrSet* m, Str key)
     {
         i = strset_next(hash, m->exp, i);
         // BUG: Deletion causes fail in lookup, as it will stop at gravestone
-        if (m->buf[i].len == 0) { return -1; }            // found empty slot
+        if (!m->buf[i].buf) { return -1; }                // found empty slot
         else if (str_equal(key, m->buf[i])) { return i; } // found filled slot
         if ((count++) >= m->len) { return -1; }           // BUG: necessary? no slot found after full iteration
     }
@@ -849,7 +851,7 @@ SI int strset_insert(StrSet* m, Str key)
     for (i32 i = hash;;)
     {
         i = strset_next(hash, m->exp, i);
-        if (m->buf[i].len == 0)
+        if (!m->buf[i].buf)
         {
             m->buf[i] = key;
             m->len++;
