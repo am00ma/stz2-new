@@ -177,28 +177,55 @@ int main(int argc, char* argv[])
     {
         EXPECT_EQ_LONG(sizeof(StrMap), 24L);
 
-        buf_stack(b, 1024);
+        Buf b = buf_new(MB_);
+
         StrMap m = strmap_new(&b, 4);
 
+        Strs keys = arr_new(Strs, &b, Str, (1 << m.exp), ALLOC_NOZERO);
+        RANGE(i, (1 << m.exp)) { keys.buf[i] = str_fmt(&b, "key-%ld", i); }
+
+        Strs vals = arr_new(Strs, &b, Str, (1 << m.exp), ALLOC_NOZERO);
+        RANGE(i, (1 << m.exp)) { vals.buf[i] = str_fmt(&b, "val-%ld", i); }
+
+        // Insert till capacity
+        RANGE(i, (1 << m.exp)) { EXPECT_TRUE(strmap_insert(&m, keys.buf[i], vals.buf[i]) >= 0); }
+        EXPECT_FALSE(strmap_insert(&m, _("a"), _("b")) >= 0);
+
+        // Check that all are found
         RANGE(i, (1 << m.exp))
         {
-            Str key = str_fmt(&b, "key-%ld", i);
-            Str val = str_fmt(&b, "val-%ld", i);
-            EXPECT_TRUE(strmap_insert(&m, key, val) >= 0);
+            Str* val;
+            val = strmap_lookup(&m, keys.buf[i]);
+            EXPECT_NEQ_NULL(val);
+            EXPECT_EQ_STR(*val, vals.buf[i]);
         }
         EXPECT_FALSE(strmap_insert(&m, _("a"), _("b")) >= 0);
 
+        // Check again, to make sure no mutation during lookup
         RANGE(i, (1 << m.exp))
         {
-            Str key    = str_fmt(&b, "key-%ld", i);
-            Str val    = str_fmt(&b, "val-%ld", i);
-            Str newval = str_fmt(&b, "newval-%ld", i);
-            EXPECT_NEQ_NULL(strmap_lookup(&m, key));
-            EXPECT_EQ_STR(val, *strmap_lookup(&m, key));
-            *strmap_lookup(&m, key) = newval;
-            EXPECT_EQ_STR(newval, *strmap_lookup(&m, key));
+            Str* val;
+            val = strmap_lookup(&m, keys.buf[i]);
+            EXPECT_NEQ_NULL(val);
+            EXPECT_EQ_STR(*val, vals.buf[i]);
         }
-        EXPECT_EQ_NULL(strmap_lookup(&m, _("a")));
+        EXPECT_FALSE(strmap_insert(&m, _("a"), _("b")) >= 0);
+
+        // Delete all keys
+        RANGE(i, (1 << m.exp)) { EXPECT_TRUE(strmap_delete(&m, keys.buf[i]) == 0); }
+
+        // Ensure all deleted
+        RANGE(i, (1 << m.exp)) { EXPECT_EQ_NULL(strmap_lookup(&m, keys.buf[i])); }
+
+        // Final check
+        EXPECT_TRUE(strmap_insert(&m, _("a"), _("b")) >= 0);
+        Str* val;
+        val = strmap_lookup(&m, _("a"));
+        EXPECT_NEQ_NULL(val);
+        EXPECT_EQ_STR(*val, _("b"));
+        EXPECT_EQ_LONG(m.len, 1L);
+
+        buf_free(&b);
     }
 
     TEST_CASE("StrSet")
@@ -211,21 +238,25 @@ int main(int argc, char* argv[])
         Strs   keys = arr_new(Strs, &b, Str, (1 << m.exp), ALLOC_NOZERO);
         RANGE(i, (1 << m.exp)) { keys.buf[i] = str_fmt(&b, "key-%ld", i); }
 
+        // Insert till capacity
         RANGE(i, (1 << m.exp)) { EXPECT_TRUE(strset_insert(&m, keys.buf[i]) >= 0); }
         EXPECT_FALSE(strset_insert(&m, _("a")) >= 0);
 
+        // Check that all are found
         RANGE(i, (1 << m.exp)) { EXPECT_TRUE(strset_lookup(&m, keys.buf[i]) >= 0); }
         EXPECT_FALSE(strset_lookup(&m, _("a")) >= 0);
 
+        // Check again, to make sure no mutation during lookup
         RANGE(i, (1 << m.exp)) { EXPECT_TRUE(strset_lookup(&m, keys.buf[i]) >= 0); }
         EXPECT_FALSE(strset_lookup(&m, _("a")) >= 0);
 
-        // // BUG: Deletion causes fail in lookup
-        // RANGE(i, (1 << m.exp)) { EXPECT_TRUE(strset_delete(&m, keys.buf[i]) >= 0); }
-        // EXPECT_FALSE(strset_lookup(&m, _("a")) >= 0);
-        //
-        // RANGE(i, (1 << m.exp)) { EXPECT_FALSE(strset_lookup(&m, keys.buf[i]) >= 0); }
-        // EXPECT_FALSE(strset_lookup(&m, _("a")) >= 0);
+        // Delete all keys
+        RANGE(i, (1 << m.exp)) { EXPECT_TRUE(strset_delete(&m, keys.buf[i]) >= 0); }
+        EXPECT_FALSE(strset_lookup(&m, _("a")) >= 0);
+
+        // Ensure all deleted
+        RANGE(i, (1 << m.exp)) { EXPECT_FALSE(strset_lookup(&m, keys.buf[i]) >= 0); }
+        EXPECT_FALSE(strset_lookup(&m, _("a")) >= 0);
 
         buf_free(&b);
     }

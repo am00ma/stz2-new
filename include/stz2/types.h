@@ -416,6 +416,7 @@ typedef struct
 
 SI StrMap strmap_new(Buf* b, isize exp);
 SI Str*   strmap_lookup(StrMap* m, Str key);
+SI int    strmap_delete(StrMap* m, Str key);
 SI int    strmap_insert(StrMap* m, Str key, Str val);
 
 typedef struct
@@ -429,6 +430,7 @@ typedef struct
 SI StrSet strset_new(Buf* b, isize exp);
 SI int    strset_lookup(StrSet* m, Str key);
 SI int    strset_insert(StrSet* m, Str key);
+SI int    strset_delete(StrSet* m, Str key);
 
 /* ---------------------------------------------------------------------------
  *  Implementation
@@ -753,6 +755,7 @@ SI Strs str_split_lines(Buf* b, Str src, isize maxlen, bool ignore_empty)
 }
 
 // --------------- String Hashmap ---------------
+#define strmap_grave (Str){.buf = 0, .len = -1}
 
 // Mask, step, index -> can use for your own hashmap
 SI int strmap_next(u64 hash, int exp, int i)
@@ -774,14 +777,17 @@ SI StrMap strmap_new(Buf* b, isize exp)
 
 Str* strmap_lookup(StrMap* m, Str key)
 {
+    if (!m->len) { return NULL; } // empty set
+
     u64 hash  = str_hash64(key);
     i32 count = 0;
     for (i32 i = hash;;)
     {
         i = strmap_next(hash, m->exp, i);
-        if (!m->buf[i].key.buf) { return NULL; }                           // found empty slot
-        else if (str_equal(key, m->buf[i].key)) { return &m->buf[i].val; } // found filled slot
-        if ((count++) >= (m->len)) { return NULL; }                        // no slot found after full iteration
+        if (!m->buf[i].key.buf && !m->buf[i].key.len) { return NULL; }          // found empty slot
+        else if (!m->buf[i].key.buf && (m->buf[i].key.len == -1)) { continue; } // found gravestone
+        else if (str_equal(key, m->buf[i].key)) { return &m->buf[i].val; }      // found filled slot
+        if ((count++) >= (m->len)) { return NULL; }                             // no slot found after full iteration
     }
 }
 
@@ -792,7 +798,7 @@ int strmap_insert(StrMap* m, Str key, Str val)
     for (i32 i = hash;;)
     {
         i = strmap_next(hash, m->exp, i);
-        if (!m->buf[i].key.buf) // found empty slot, insert
+        if (!m->buf[i].key.buf) // found empty slot or gravestone, insert
         {
             m->buf[i].key = key;
             m->buf[i].val = val;
@@ -807,7 +813,28 @@ int strmap_insert(StrMap* m, Str key, Str val)
     }
 }
 
+SI int strmap_delete(StrMap* m, Str key)
+{
+    u64 hash  = str_hash64(key);
+    i32 count = 0;
+    for (i32 i = hash;;)
+    {
+        i = strmap_next(hash, m->exp, i);
+        if (!m->buf[i].key.buf && !m->buf[i].key.len) { return -1; }            // found empty slot, nothing to delete
+        else if (!m->buf[i].key.buf && (m->buf[i].key.len == -1)) { continue; } // found gravestone
+        else if (str_equal(key, m->buf[i].key))                                 // found key
+        {
+            m->buf[i].key = (Str){.buf = 0, .len = -1};
+            m->buf[i].val = StrNull;
+            m->len--;
+            return 0; // successful deletion
+        }
+        if ((count++) >= (m->len)) { return -1; } // no slot found after full iteration
+    }
+}
+
 // --------------- String Set ---------------
+#define strset_grave (Str){.buf = 0, .len = -1}
 
 // Mask, step, index -> can use for your own hashmap
 SI int strset_next(u64 hash, int exp, int i)
@@ -836,10 +863,10 @@ SI int strset_lookup(StrSet* m, Str key)
     for (i32 i = hash;;)
     {
         i = strset_next(hash, m->exp, i);
-        // BUG: Deletion causes fail in lookup, as it will stop at gravestone
-        if (!m->buf[i].buf) { return -1; }                // found empty slot
-        else if (str_equal(key, m->buf[i])) { return i; } // found filled slot
-        if ((count++) >= m->len) { return -1; }           // BUG: necessary? no slot found after full iteration
+        if (!m->buf[i].buf && !m->buf[i].len) { return -1; }            // found empty slot
+        else if (!m->buf[i].buf && (m->buf[i].len == -1)) { continue; } // found gravestone
+        else if (str_equal(key, m->buf[i])) { return i; }               // found filled slot
+        if ((count++) >= m->len) { return -1; } // BUG: necessary? no slot found after full iteration
     }
 }
 
@@ -851,15 +878,15 @@ SI int strset_insert(StrSet* m, Str key)
     for (i32 i = hash;;)
     {
         i = strset_next(hash, m->exp, i);
-        if (!m->buf[i].buf)
+        if (!m->buf[i].buf) // found empty slot or gravestone, insert
         {
             m->buf[i] = key;
             m->len++;
-            return i; // found empty slot, insert
+            return i;
         }
-        else if (str_equal(key, m->buf[i]))
+        else if (str_equal(key, m->buf[i])) // found filled slot, overwrite
         {
-            return i; // found filled slot, overwrite
+            return i;
         }
     }
 }
@@ -867,8 +894,8 @@ SI int strset_insert(StrSet* m, Str key)
 SI int strset_delete(StrSet* m, Str key)
 {
     int idx = strset_lookup(m, key);
-    if (idx < 0) { return -1; } // not found
-    m->buf[idx] = StrNull;
+    if (idx < 0) { return -1; }               // not found
+    m->buf[idx] = (Str){.buf = 0, .len = -1}; // insert gravestone
     m->len--;
     return idx;
 }
