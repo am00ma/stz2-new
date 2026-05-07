@@ -63,6 +63,18 @@ int main(int argc, char* argv[])
         buf_reset(&temp);
         Str str5 = str_fmt(&temp, "hello: %03ld", 1L);
         EXPECT_EQ_STR(str5, _("hello: 001"));
+
+        buf_reset(&temp);
+        Str str6 = str_repeat(&temp, ' ', 3);
+        EXPECT_EQ_STR(str6, _("   "));
+
+        buf_reset(&temp);
+        Str str7 = str_repeat(&temp, '-', 0);
+        EXPECT_EQ_STR(str7, _(""));
+
+        buf_reset(&temp);
+        Str str8 = str_repeat(&temp, '-', 3);
+        EXPECT_EQ_STR(str8, _("---"));
     }
 
     TEST_CASE("Sub")
@@ -139,6 +151,21 @@ int main(int argc, char* argv[])
             Strs got = str_split_lines(&b, cases[i].src, -1, cases[i].ignore);
             EXPECT_EQ_LONG(got.len, cases[i].expected);
             EXPECT_EQ_LONG(b.len, (cases[i].expected * (isize)sizeof(Str)));
+        }
+    }
+
+    TEST_CASE("Iterator")
+    {
+        Str src        = _(" hello   hi ");
+        Str expected[] = {_(""), _("hello"), _(""), _(""), _("hi"), _("")};
+
+        Str   word  = {};
+        isize count = 0;
+        while (src.len)
+        {
+            word = str_till_next(&src, ' ');
+            EXPECT_EQ_STR(word, expected[count]);
+            count++;
         }
     }
 

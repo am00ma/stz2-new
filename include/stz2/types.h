@@ -312,13 +312,6 @@ typedef struct
 SI Str  str_new(Buf* b, isize len);
 SI bool str_equal(Str s1, Str s2);
 
-SI Str str_copy(Buf* b, Str s, bool null_terminated);
-SI Str str_fmtn(Buf* b, isize len, const char* fmt, ...) __attribute__((format(printf, 3, 4)));
-SI Str str_fmt(Buf* b, const char* fmt, ...) __attribute__((format(printf, 2, 3)));
-
-SI Str0 str0_fmtn(Buf* b, isize len, const char* fmt, ...) __attribute__((format(printf, 3, 4)));
-SI Str0 str0_fmt(Buf* b, const char* fmt, ...) __attribute__((format(printf, 2, 3)));
-
 // 'Safe' substrings and comparisons
 SI Str   str_sub(Str s1, isize start, isize end); // Inclusive when using negative indices
 SI bool  str_startswith(Str s1, Str prefix);
@@ -326,6 +319,22 @@ SI bool  str_endswith(Str s1, Str suffix);
 SI bool  str_contains(Str s1, Str sub);
 SI isize str_find(Str s1, Str sub);
 
+// Lifetime
+SI Str str_copy(Buf* b, Str s, bool null_terminated);
+
+// Format strings
+SI Str str_fmtn(Buf* b, isize len, const char* fmt, ...) __attribute__((format(printf, 3, 4)));
+SI Str str_fmt(Buf* b, const char* fmt, ...) __attribute__((format(printf, 2, 3)));
+SI Str str_repeat(Buf* b, char c, isize len);
+
+// Str0 Format strings
+SI Str0 str0_fmtn(Buf* b, isize len, const char* fmt, ...) __attribute__((format(printf, 3, 4)));
+SI Str0 str0_fmt(Buf* b, const char* fmt, ...) __attribute__((format(printf, 2, 3)));
+
+// Iterator style
+SI Str str_till_next(Str* src, char c);
+
+// Hashmaps
 SI u64 str_hash64(Str s);
 
 // TODO: Where does this fit?
@@ -581,6 +590,27 @@ SI Str str_fmt(Buf* b, char const* fmt, ...)
 
     b->len -= (len - s.len);
     return s;
+}
+
+SI Str str_repeat(Buf* b, char c, isize len)
+{
+    Str dst = str_new(b, len);
+    memset(dst.buf, c, len);
+    return dst;
+}
+
+SI Str str_till_next(Str* src, char c)
+{
+    char* start = src->buf;
+    while (src->buf[0] != c && src->len > 0)
+    {
+        src->buf++;
+        src->len--;
+    }
+    Str dst   = {start, src->buf - start};
+    src->buf += src->len > 0;
+    src->len -= src->len > 0;
+    return dst;
 }
 
 SI u64 str_hash64(Str s)
