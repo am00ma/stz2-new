@@ -547,7 +547,7 @@ SI bool str_contains(Str s1, Str sub) { return str_find(s1, sub) >= 0; }
 SI isize str_find(Str s1, Str sub)
 {
     if (!sub.len) return 0; // Always finds NullStr
-    if (sub.len > s1.len) return false;
+    if (sub.len > s1.len) return -1;
     RANGE(i, s1.len)
     {
         if (!(s1.buf[i] == sub.buf[0])) continue;

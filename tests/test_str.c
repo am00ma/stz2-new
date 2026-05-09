@@ -88,6 +88,8 @@ int main(int argc, char* argv[])
         EXPECT_EQ_LONG(str_find(s1, _("hi")), 6L);
     }
 
+    TEST_CASE("contains") { EXPECT_FALSE(str_contains(_("italic"), _("underline"))); }
+
     TEST_CASE("Trim")
     {
         EXPECT_EQ_STR(str_trim(_("\t x  \t"), STRS_TRIM_DEFAULT), _("x"));
