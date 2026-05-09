@@ -442,19 +442,19 @@ SI int    strset_lookup(StrSet* m, Str key);
 SI int    strset_insert(StrSet* m, Str key);
 SI int    strset_delete(StrSet* m, Str key);
 
-// // TODO: Can help make 'generic' by indexing to vals array
-// typedef struct
-// {
-//     KeyIdx* buf;
-//     isize   len;
-//     isize   exp; ///< Exponent to power of 2
-//
-// } StrIdxMap;
-//
-// SI StrIdxMap stridxmap_new(Buf* b, isize exp);
-// SI i64*      stridxmap_lookup(StrIdxMap* m, Str key);
-// SI int       stridxmap_delete(StrIdxMap* m, Str key);
-// SI int       stridxmap_insert(StrIdxMap* m, Str key, i64 val);
+// TODO: Can help make 'generic' by indexing to vals array
+typedef struct
+{
+    KeyIdx* buf;
+    isize   len;
+    isize   exp; ///< Exponent to power of 2
+
+} IdxMap;
+
+SI IdxMap idxmap_new(Buf* b, isize exp);
+SI i64*   idxmap_lookup(IdxMap* m, Str key);
+SI int    idxmap_delete(IdxMap* m, Str key);
+SI int    idxmap_insert(IdxMap* m, Str key, i64 val);
 
 /* ---------------------------------------------------------------------------
  *  Implementation
@@ -902,6 +902,85 @@ SI int strmap_delete(StrMap* m, Str key)
         {
             m->buf[i].key = (Str){.buf = 0, .len = -1};
             m->buf[i].val = StrNull;
+            m->len--;
+            return 0; // successful deletion
+        }
+        if ((count++) >= (m->len)) { return -1; } // no slot found after full iteration
+    }
+}
+
+// --------------- Index Map ---------------
+#define idxmap_grave (Str){.buf = 0, .len = -1}
+
+// Mask, step, index -> can use for your own hashmap
+SI int idxmap_next(u64 hash, int exp, int i)
+{
+    unsigned mask = (1 << exp) - 1;
+    unsigned step = hash >> (64 - exp) | 1;
+    return (i + step) & mask;
+}
+
+SI IdxMap idxmap_new(Buf* b, isize exp)
+{
+    return (IdxMap){
+        // ALLOC_ZERO needed to set .buf = 0 which marks empty slot
+        .buf = make(b, KeyIdx, (1 << exp), ALLOC_ZERO),
+        .len = 0,
+        .exp = exp,
+    };
+}
+
+SI i64* idxmap_lookup(IdxMap* m, Str key)
+{
+    if (!m->len) { return NULL; } // empty map
+
+    u64 hash  = str_hash64(key);
+    i32 count = 0;
+    for (i32 i = hash;;)
+    {
+        i = idxmap_next(hash, m->exp, i);
+        if (!m->buf[i].key.buf && !m->buf[i].key.len) { return NULL; }          // found empty slot
+        else if (!m->buf[i].key.buf && (m->buf[i].key.len == -1)) { continue; } // found gravestone
+        else if (str_equal(key, m->buf[i].key)) { return &m->buf[i].idx; }      // found filled slot
+        if ((count++) >= m->len) { return NULL; } // BUG: necessary? no slot found after full iteration
+    }
+}
+
+SI int idxmap_insert(IdxMap* m, Str key, i64 val)
+{
+    if ((m->len + 1) > (1 << m->exp)) { return -1; } // overflows capacity
+
+    u64 hash = str_hash64(key);
+    for (i32 i = hash;;)
+    {
+        i = idxmap_next(hash, m->exp, i);
+        if (!m->buf[i].key.buf) // found empty slot or gravestone, insert
+        {
+            m->buf[i].key = key;
+            m->buf[i].idx = val;
+            m->len++;
+            return i;
+        }
+        else if (str_equal(key, m->buf[i].key)) // found filled slot, overwrite
+        {
+            return i;
+        }
+    }
+}
+
+SI int idxmap_delete(IdxMap* m, Str key)
+{
+    u64 hash  = str_hash64(key);
+    i32 count = 0;
+    for (i32 i = hash;;)
+    {
+        i = idxmap_next(hash, m->exp, i);
+        if (!m->buf[i].key.buf && !m->buf[i].key.len) { return -1; }            // found empty slot, nothing to delete
+        else if (!m->buf[i].key.buf && (m->buf[i].key.len == -1)) { continue; } // found gravestone
+        else if (str_equal(key, m->buf[i].key))                                 // found key
+        {
+            m->buf[i].key = (Str){.buf = 0, .len = -1};
+            m->buf[i].idx = 0;
             m->len--;
             return 0; // successful deletion
         }

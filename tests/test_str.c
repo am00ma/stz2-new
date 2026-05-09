@@ -320,6 +320,61 @@ int main(int argc, char* argv[])
         buf_free(&b);
     }
 
+    TEST_CASE("IdxMap")
+    {
+        EXPECT_EQ_LONG(sizeof(IdxMap), 24L);
+
+        Buf b = buf_new(MB_);
+
+        IdxMap m = idxmap_new(&b, 4);
+
+        Strs keys = arr_new(Strs, &b, Str, (1 << m.exp), ALLOC_NOZERO);
+        RANGE(i, (1 << m.exp)) { keys.buf[i] = str_fmt(&b, "key-%ld", i); }
+
+        i64s vals = arr_new(i64s, &b, i64, (1 << m.exp), ALLOC_NOZERO);
+        RANGE(i, (1 << m.exp)) { vals.buf[i] = i * 10; }
+
+        // Insert till capacity
+        RANGE(i, (1 << m.exp)) { EXPECT_TRUE(idxmap_insert(&m, keys.buf[i], vals.buf[i]) >= 0); }
+        EXPECT_FALSE(idxmap_insert(&m, _("a"), 0) >= 0);
+
+        // Check that all are found
+        RANGE(i, (1 << m.exp))
+        {
+            i64* val;
+            val = idxmap_lookup(&m, keys.buf[i]);
+            EXPECT_NEQ_NULL(val);
+            EXPECT_EQ_LONG(*val, vals.buf[i]);
+        }
+        EXPECT_FALSE(idxmap_insert(&m, _("a"), 0) >= 0);
+
+        // Check again, to make sure no mutation during lookup
+        RANGE(i, (1 << m.exp))
+        {
+            i64* val;
+            val = idxmap_lookup(&m, keys.buf[i]);
+            EXPECT_NEQ_NULL(val);
+            EXPECT_EQ_LONG(*val, vals.buf[i]);
+        }
+        EXPECT_FALSE(idxmap_insert(&m, _("a"), 0) >= 0);
+
+        // Delete all keys
+        RANGE(i, (1 << m.exp)) { EXPECT_TRUE(idxmap_delete(&m, keys.buf[i]) == 0); }
+
+        // Ensure all deleted
+        RANGE(i, (1 << m.exp)) { EXPECT_EQ_NULL(idxmap_lookup(&m, keys.buf[i])); }
+
+        // Final check
+        EXPECT_TRUE(idxmap_insert(&m, _("a"), 10) >= 0);
+        i64* val;
+        val = idxmap_lookup(&m, _("a"));
+        EXPECT_NEQ_NULL(val);
+        EXPECT_EQ_LONG(*val, 10L);
+        EXPECT_EQ_LONG(m.len, 1L);
+
+        buf_free(&b);
+    }
+
     TEST_CASE("StrSet")
     {
         EXPECT_EQ_LONG(sizeof(StrSet), 24L);
