@@ -333,6 +333,7 @@ SI Str0 str0_fmt(Buf* b, const char* fmt, ...) __attribute__((format(printf, 2, 
 
 // Iterator style
 SI Str str_till_next(Str* src, char c);
+SI Str str_till_next2(Str* src, Str c);
 
 // Hashmaps
 SI u64 str_hash64(Str s);
@@ -440,6 +441,20 @@ SI StrSet strset_new(Buf* b, isize exp);
 SI int    strset_lookup(StrSet* m, Str key);
 SI int    strset_insert(StrSet* m, Str key);
 SI int    strset_delete(StrSet* m, Str key);
+
+// // TODO: Can help make 'generic' by indexing to vals array
+// typedef struct
+// {
+//     KeyIdx* buf;
+//     isize   len;
+//     isize   exp; ///< Exponent to power of 2
+//
+// } StrIdxMap;
+//
+// SI StrIdxMap stridxmap_new(Buf* b, isize exp);
+// SI i64*      stridxmap_lookup(StrIdxMap* m, Str key);
+// SI int       stridxmap_delete(StrIdxMap* m, Str key);
+// SI int       stridxmap_insert(StrIdxMap* m, Str key, i64 val);
 
 /* ---------------------------------------------------------------------------
  *  Implementation
@@ -602,7 +617,7 @@ SI Str str_repeat(Buf* b, char c, isize len)
 SI Str str_till_next(Str* src, char c)
 {
     char* start = src->buf;
-    while (src->buf[0] != c && src->len > 0)
+    while ((src->buf[0] != c) && (src->len > 0))
     {
         src->buf++;
         src->len--;
@@ -610,6 +625,37 @@ SI Str str_till_next(Str* src, char c)
     Str dst   = {start, src->buf - start};
     src->buf += src->len > 0;
     src->len -= src->len > 0;
+    return dst;
+}
+
+// TODO: Currently too complicated. Why? Could use auxiliary str_from_next func
+SI Str str_till_next2(Str* src, Str c)
+{
+    if (!c.len || !c.buf) { return *src; }
+    char* start = src->buf;
+    while (src->len > 0)
+    {
+        if (src->buf[0] != c.buf[0])
+        {
+            src->buf++;
+            src->len--;
+        }
+        else
+        {
+            if (str_equal((Str){src->buf, c.len}, c)) { goto return__; }
+            else
+            {
+                isize len  = minimum(c.len, src->len);
+                src->buf  += len;
+                src->len  -= len;
+            }
+        }
+    }
+
+return__:
+    Str dst   = {start, src->buf - start};
+    src->buf += c.len * (src->len > 0); // TODO: This is most probably wrong
+    src->len -= c.len * (src->len > 0);
     return dst;
 }
 

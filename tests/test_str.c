@@ -169,6 +169,69 @@ int main(int argc, char* argv[])
             EXPECT_EQ_STR(word, expected[count]);
             count++;
         }
+
+        src   = _(" hello   hi ");
+        word  = StrNull;
+        count = 0;
+        while (src.len)
+        {
+            word = str_till_next(&src, ',');
+            count++;
+        }
+        EXPECT_EQ_LONG(count, 1L);
+        EXPECT_EQ_STR(word, _(" hello   hi "));
+
+        Str src2        = _(" hello   hi ");
+        Str sep2        = _("hello");
+        Str expected2[] = {_(" "), _("   hi ")};
+
+        word  = StrNull;
+        count = 0;
+        while (src2.len)
+        {
+            word = str_till_next2(&src2, sep2);
+            EXPECT_EQ_STR(word, expected2[count]);
+            count++;
+        }
+
+        Str src3        = _(" hello   hi ");
+        Str sep3        = _("how");
+        Str expected3[] = {src3};
+
+        word  = StrNull;
+        count = 0;
+        while (src3.len)
+        {
+            word = str_till_next2(&src3, sep3);
+            EXPECT_EQ_STR(word, expected3[count]);
+            count++;
+        }
+
+        Str src4        = _(" hello   hi ");
+        Str sep4        = _("hi ");
+        Str expected4[] = {_(" hello   ")};
+
+        word  = StrNull;
+        count = 0;
+        while (src4.len)
+        {
+            word = str_till_next2(&src4, sep4);
+            EXPECT_EQ_STR(word, expected4[count]);
+            count++;
+        }
+
+        Str src5        = _(" hello   hi ");
+        Str sep5        = _("hi    ");
+        Str expected5[] = {src5};
+
+        word  = StrNull;
+        count = 0;
+        while (src5.len)
+        {
+            word = str_till_next2(&src5, sep5);
+            EXPECT_EQ_STR(word, expected5[count]);
+            count++;
+        }
     }
 
     TEST_CASE("KeyVal")
