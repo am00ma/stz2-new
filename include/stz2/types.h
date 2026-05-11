@@ -1162,5 +1162,171 @@ SI void printvar__StrMap(StrMap* x)
         Str0s: printvar__Str0s,                                                                                        \
         StrMap: printvar__StrMap)(&x)
 
-#define PrintLn(x)         (p_inline("%s = ", #x), PrintVar(x), p_newline());
+// Allowing for up to 10 params
+// #define PrintLn(x)         (p_inline("%s = ", #x), PrintVar(x), p_newline());
+
+#define PrintLn(...)                                                                                                   \
+    PrintLnx(__VA_ARGS__, PrintLn10, PrintLn9, PrintLn8, PrintLn7, PrintLn6, PrintLn5, PrintLn4, PrintLn3, PrintLn2,   \
+             PrintLn1)(__VA_ARGS__)
+#define PrintLnx(v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, ...) v11
+
+// clang-format off
+#define PrintLn1(v1)                                                                                                   \
+(p_inline("%s = ", #v1), PrintVar(v1) , p_newline())
+
+#define PrintLn2(v1, v2)                                                                                               \
+(p_inline("%s = ", #v1), PrintVar(v1), p_inline(", "), \
+ p_inline("%s = ", #v2), PrintVar(v2), p_newline())
+
+#define PrintLn3(v1, v2, v3)                                                                                           \
+(p_inline("%s = ", #v1), PrintVar(v1), p_inline(", "), \
+ p_inline("%s = ", #v2), PrintVar(v2), p_inline(", "), \
+ p_inline("%s = ", #v3), PrintVar(v3), p_newline())
+
+#define PrintLn4(v1, v2, v3, v4)                                                                                       \
+(p_inline("%s = ", #v1), PrintVar(v1), p_inline(", "), \
+ p_inline("%s = ", #v2), PrintVar(v2), p_inline(", "), \
+ p_inline("%s = ", #v3), PrintVar(v3), p_inline(", "), \
+ p_inline("%s = ", #v4), PrintVar(v4), p_newline())
+
+#define PrintLn5(v1, v2, v3, v4, v5)                                                                                   \
+(p_inline("%s = ", #v1), PrintVar(v1), p_inline(", "), \
+ p_inline("%s = ", #v2), PrintVar(v2), p_inline(", "), \
+ p_inline("%s = ", #v3), PrintVar(v3), p_inline(", "), \
+ p_inline("%s = ", #v4), PrintVar(v4), p_inline(", "), \
+ p_inline("%s = ", #v5), PrintVar(v5), p_newline())
+
+#define PrintLn6(v1, v2, v3, v4, v5, v6)                                                                               \
+(p_inline("%s = ", #v1), PrintVar(v1), p_inline(", "), \
+ p_inline("%s = ", #v2), PrintVar(v2), p_inline(", "), \
+ p_inline("%s = ", #v3), PrintVar(v3), p_inline(", "), \
+ p_inline("%s = ", #v4), PrintVar(v4), p_inline(", "), \
+ p_inline("%s = ", #v5), PrintVar(v5), p_inline(", "), \
+ p_inline("%s = ", #v6), PrintVar(v6), p_newline())
+
+#define PrintLn7(v1, v2, v3, v4, v5, v6, v7)                                                                           \
+(p_inline("%s = ", #v1), PrintVar(v1), p_inline(", "), \
+ p_inline("%s = ", #v2), PrintVar(v2), p_inline(", "), \
+ p_inline("%s = ", #v3), PrintVar(v3), p_inline(", "), \
+ p_inline("%s = ", #v4), PrintVar(v4), p_inline(", "), \
+ p_inline("%s = ", #v5), PrintVar(v5), p_inline(", "), \
+ p_inline("%s = ", #v6), PrintVar(v6), p_inline(", "), \
+ p_inline("%s = ", #v7), PrintVar(v7), p_newline())
+
+#define PrintLn8(v1, v2, v3, v4, v5, v6, v7, v8)                                                                       \
+(p_inline("%s = ", #v1), PrintVar(v1), p_inline(", "), \
+ p_inline("%s = ", #v2), PrintVar(v2), p_inline(", "), \
+ p_inline("%s = ", #v3), PrintVar(v3), p_inline(", "), \
+ p_inline("%s = ", #v4), PrintVar(v4), p_inline(", "), \
+ p_inline("%s = ", #v5), PrintVar(v5), p_inline(", "), \
+ p_inline("%s = ", #v6), PrintVar(v6), p_inline(", "), \
+ p_inline("%s = ", #v7), PrintVar(v7), p_inline(", "), \
+ p_inline("%s = ", #v8), PrintVar(v8), p_newline())
+
+#define PrintLn9(v1, v2, v3, v4, v5, v6, v7, v8, v9)                                                                   \
+(p_inline("%s = ", #v1), PrintVar(v1), p_inline(", "), \
+ p_inline("%s = ", #v2), PrintVar(v2), p_inline(", "), \
+ p_inline("%s = ", #v3), PrintVar(v3), p_inline(", "), \
+ p_inline("%s = ", #v4), PrintVar(v4), p_inline(", "), \
+ p_inline("%s = ", #v5), PrintVar(v5), p_inline(", "), \
+ p_inline("%s = ", #v6), PrintVar(v6), p_inline(", "), \
+ p_inline("%s = ", #v7), PrintVar(v7), p_inline(", "), \
+ p_inline("%s = ", #v8), PrintVar(v8), p_inline(", "), \
+ p_inline("%s = ", #v9), PrintVar(v9), p_newline())
+
+#define PrintLn10(v1, v2, v3, v4, v5, v6, v7, v8, v9, v10)                                                             \
+(p_inline("%s = ", #v1), PrintVar(v1), p_inline(", "), \
+ p_inline("%s = ", #v2), PrintVar(v2), p_inline(", "), \
+ p_inline("%s = ", #v3), PrintVar(v3), p_inline(", "), \
+ p_inline("%s = ", #v4), PrintVar(v4), p_inline(", "), \
+ p_inline("%s = ", #v5), PrintVar(v5), p_inline(", "), \
+ p_inline("%s = ", #v6), PrintVar(v6), p_inline(", "), \
+ p_inline("%s = ", #v7), PrintVar(v7), p_inline(", "), \
+ p_inline("%s = ", #v8), PrintVar(v8), p_inline(", "), \
+ p_inline("%s = ", #v9), PrintVar(v9), p_inline(", "), \
+ p_inline("%s = ", #v10),PrintVar(v10),p_newline())
+
+#define PrintVars(...)                                                                                                   \
+    PrintVarsx(__VA_ARGS__, PrintVars10, PrintVars9, PrintVars8, PrintVars7, PrintVars6, PrintVars5, PrintVars4, PrintVars3, PrintVars2,   \
+             PrintVars1)(__VA_ARGS__)
+#define PrintVarsx(v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, ...) v11
+
+// clang-format off
+#define PrintVars1(v1)                                                                                                   \
+(PrintVar(v1) , p_newline())
+
+#define PrintVars2(v1, v2)                                                                                               \
+(PrintVar(v1), p_inline(", "), \
+ PrintVar(v2), p_newline())
+
+#define PrintVars3(v1, v2, v3)                                                                                           \
+(PrintVar(v1), p_inline(", "), \
+ PrintVar(v2), p_inline(", "), \
+ PrintVar(v3), p_newline())
+
+#define PrintVars4(v1, v2, v3, v4)                                                                                       \
+(PrintVar(v1), p_inline(", "), \
+ PrintVar(v2), p_inline(", "), \
+ PrintVar(v3), p_inline(", "), \
+ PrintVar(v4), p_newline())
+
+#define PrintVars5(v1, v2, v3, v4, v5)                                                                                   \
+(PrintVar(v1), p_inline(", "), \
+ PrintVar(v2), p_inline(", "), \
+ PrintVar(v3), p_inline(", "), \
+ PrintVar(v4), p_inline(", "), \
+ PrintVar(v5), p_newline())
+
+#define PrintVars6(v1, v2, v3, v4, v5, v6)                                                                               \
+(PrintVar(v1), p_inline(", "), \
+ PrintVar(v2), p_inline(", "), \
+ PrintVar(v3), p_inline(", "), \
+ PrintVar(v4), p_inline(", "), \
+ PrintVar(v5), p_inline(", "), \
+ PrintVar(v6), p_newline())
+
+#define PrintVars7(v1, v2, v3, v4, v5, v6, v7)                                                                           \
+(PrintVar(v1), p_inline(", "), \
+ PrintVar(v2), p_inline(", "), \
+ PrintVar(v3), p_inline(", "), \
+ PrintVar(v4), p_inline(", "), \
+ PrintVar(v5), p_inline(", "), \
+ PrintVar(v6), p_inline(", "), \
+ PrintVar(v7), p_newline())
+
+#define PrintVars8(v1, v2, v3, v4, v5, v6, v7, v8)                                                                       \
+(PrintVar(v1), p_inline(", "), \
+ PrintVar(v2), p_inline(", "), \
+ PrintVar(v3), p_inline(", "), \
+ PrintVar(v4), p_inline(", "), \
+ PrintVar(v5), p_inline(", "), \
+ PrintVar(v6), p_inline(", "), \
+ PrintVar(v7), p_inline(", "), \
+ PrintVar(v8), p_newline())
+
+#define PrintVars9(v1, v2, v3, v4, v5, v6, v7, v8, v9)                                                                   \
+(PrintVar(v1), p_inline(", "), \
+ PrintVar(v2), p_inline(", "), \
+ PrintVar(v3), p_inline(", "), \
+ PrintVar(v4), p_inline(", "), \
+ PrintVar(v5), p_inline(", "), \
+ PrintVar(v6), p_inline(", "), \
+ PrintVar(v7), p_inline(", "), \
+ PrintVar(v8), p_inline(", "), \
+ PrintVar(v9), p_newline())
+
+#define PrintVars10(v1, v2, v3, v4, v5, v6, v7, v8, v9, v10)                                                             \
+(PrintVar(v1), p_inline(", "), \
+ PrintVar(v2), p_inline(", "), \
+ PrintVar(v3), p_inline(", "), \
+ PrintVar(v4), p_inline(", "), \
+ PrintVar(v5), p_inline(", "), \
+ PrintVar(v6), p_inline(", "), \
+ PrintVar(v7), p_inline(", "), \
+ PrintVar(v8), p_inline(", "), \
+ PrintVar(v9), p_inline(", "), \
+ PrintVar(v10),p_newline())
+
+// clang-format on
+
 #define PrintAligned(x, n) (p_inline("%-" #n "s = ", #x), PrintVar(x), p_newline());
