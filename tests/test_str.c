@@ -99,6 +99,9 @@ int main(int argc, char* argv[])
         EXPECT_EQ_STR(str_trim(_("\n x  \n"), STRS_TRIM_RIGHT | STRS_TRIM_SPACES | STRS_TRIM_NEWLINES), _("\n x"));
         EXPECT_EQ_STR(str_trim(_("\n x  \n"), STRS_TRIM_LEFT | STRS_TRIM_SPACES | STRS_TRIM_NEWLINES), _("x  \n"));
         EXPECT_EQ_STR(str_trim(_("\n x  \n"), STRS_TRIM_DEFAULT | STRS_TRIM_NEWLINES), _("x"));
+        EXPECT_EQ_STR(str_trim(_("\n   \n"), STRS_TRIM_DEFAULT), _(""));
+
+        str_trim(_("\n   \n"), STRS_TRIM_DEFAULT);
     }
 
     TEST_CASE("Split")
@@ -247,8 +250,8 @@ int main(int argc, char* argv[])
             Str           exp_key;
             Str           exp_val;
         } cases[] = {
-            {_(""),           ':', STRS_TRIM_DEFAULT, _(""),    _("")},
-            {_("abc"),        ':', STRS_TRIM_DEFAULT, _("abc"), _("")},
+            {_(""),           ':', STRS_TRIM_DEFAULT, StrNull,  StrNull},
+            {_("abc"),        ':', STRS_TRIM_DEFAULT, _("abc"), StrNull},
             {_("a:b c"),      ':', STRS_TRIM_DEFAULT, _("a"),   _("b c")},
             {_("a:   b c"),   ':', STRS_TRIM_DEFAULT, _("a"),   _("b c")},
             {_("a:   b c  "), ':', STRS_TRIM_DEFAULT, _("a"),   _("b c")},

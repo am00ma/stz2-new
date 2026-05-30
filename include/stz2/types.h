@@ -527,7 +527,10 @@ SI Str str_new(Buf* b, isize len)
 SI bool str_equal(Str s1, Str s2)
 {
     if (s1.len != s2.len) { return false; }
-    if (s1.len == 0) { return true; }
+    // NOTE: Empty strings are not equal to null strings
+    //       but empty strings by themselves are equal
+    //       and null strings by themselves are equal
+    if (s1.len == 0) { return (s1.buf && s2.buf) || (!s1.buf && !s2.buf); }
     return !memcmp(s1.buf, s2.buf, s1.len);
 }
 
@@ -718,10 +721,14 @@ SI Str str_trim(Str src, StrTrimFlags flags)
     {
         RANGE(i, src.len)
         {
-            if ((src.buf[i] == ' ') && (flags & STRS_TRIM_SPACES)) continue;
-            else if ((src.buf[i] == '\t') && (flags & STRS_TRIM_TABS)) continue;
-            else if ((src.buf[i] == '\n') && (flags & STRS_TRIM_NEWLINES)) continue;
-            else if ((src.buf[i] == '\r') && (flags & STRS_TRIM_CRETURNS)) continue;
+            char c = src.buf[i];
+            if (((c == ' ') && (flags & STRS_TRIM_SPACES)) ||    //
+                ((c == '\t') && (flags & STRS_TRIM_TABS)) ||     //
+                ((c == '\n') && (flags & STRS_TRIM_NEWLINES)) || //
+                ((c == '\r') && (flags & STRS_TRIM_CRETURNS)))
+            {
+                start++;
+            }
             else
             {
                 start = i;
@@ -733,12 +740,16 @@ SI Str str_trim(Str src, StrTrimFlags flags)
     isize stop = src.len;
     if (flags & STRS_TRIM_RIGHT)
     {
-        for (isize i = src.len - 1; i >= 0; i--)
+        for (isize i = src.len - 1; i >= start; i--)
         {
-            if ((src.buf[i] == ' ') && (flags & STRS_TRIM_SPACES)) continue;
-            else if ((src.buf[i] == '\t') && (flags & STRS_TRIM_TABS)) continue;
-            else if ((src.buf[i] == '\n') && (flags & STRS_TRIM_NEWLINES)) continue;
-            else if ((src.buf[i] == '\r') && (flags & STRS_TRIM_CRETURNS)) continue;
+            char c = src.buf[i];
+            if (((c == ' ') && (flags & STRS_TRIM_SPACES)) ||    //
+                ((c == '\t') && (flags & STRS_TRIM_TABS)) ||     //
+                ((c == '\n') && (flags & STRS_TRIM_NEWLINES)) || //
+                ((c == '\r') && (flags & STRS_TRIM_CRETURNS)))
+            {
+                stop--;
+            }
             else
             {
                 stop = i + 1;
